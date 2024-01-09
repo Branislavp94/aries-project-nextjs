@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import ToastProvider from '@/provider/TostifyProvider';
 import NextAuthProvider from '@/provider/NextAuthProvider';
+import TenStackQueryProvider from '@/provider/TenStackQueryProvider';
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -17,9 +18,11 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <NextAuthProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
+          <TenStackQueryProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </TenStackQueryProvider>
         </NextAuthProvider>
       </body>
     </html>

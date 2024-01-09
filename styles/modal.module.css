@@ -1,0 +1,52 @@
+.modal-bg {
+  z-index: 9999;
+  &:not(.modal-bg-disabled) {
+    cursor: pointer;
+  }
+}
+
+.loading-overlay-modal-bg {
+  z-index: 99999;
+  cursor: default;
+}
+
+.modal-window {
+  background-color:white;
+  border-radius: 5px;
+  padding: 30px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: scaleUpCentered 400ms ease 0ms 1;
+  z-index:999;
+  max-width: 1000px;
+  width: calc(100% - 30px);
+  max-height: auto;
+  overflow-y: auto;
+}
+
+.modal-close {
+  cursor: pointer;
+  position: absolute;
+  right: 15px;
+  top: 15px;
+}
+
+@keyframes scaleUpCentered {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.load-ovl-text {
+  color: white;
+  position: fixed;
+  display: inline-block;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

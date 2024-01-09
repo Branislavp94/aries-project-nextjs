@@ -4,16 +4,30 @@ import React from 'react'
 import LogoImage from '@/public/images/413031207_6745980488864413_7674386761553248927_n.jpg'
 import AriesImage from '@/public/images/SvgHeart.Com-445.png'
 import { useForm } from 'react-hook-form'
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation'
 import InputForm from '../uttils/InputForm'
 import { isDateNotBetweenMarch21AndApril19 } from '../helpers'
-import { notifyNotAries } from '@/lib/reactTostifyMessage'
-
+import { notifyNotAries, successMesasge } from '@/lib/reactTostifyMessage'
+import axios from 'axios'
+import { useMutation } from '@tanstack/react-query'
+import LoadingOverlay from './LoadingOverlay'
 
 const RegisterUser = () => {
+  const { mutate, isPending } = useMutation({
+    mutationFn: (data: any) => {
+      return axios.post(`${process.env.BACKEND_URL}/api/user/register`, data)
+    },
+    onSuccess() {
+      successMesasge('Succssessfuly created user')
+    },
+    onError(error, variables, context) {
+      console.log(error);
+    },
+
+  },
+  )
+
+
   const { handleSubmit, register } = useForm();
-  const router = useRouter()
 
   const submitForm = (data: any) => {
     const date = data?.date;
@@ -21,19 +35,14 @@ const RegisterUser = () => {
     if (isDateNotBetweenMarch21AndApril19(date)) {
       notifyNotAries();
     } else {
-      signIn('credentials', {
-        redirect: false,
-        email: data?.email,
-        password: data?.password,
-      }).then((response) => {
-        router.push('/')
-        console.log(response)
-      })
+      mutate(data)
     }
   }
 
+
   return (
     <>
+      {isPending && <LoadingOverlay />}
       <section className="bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
           <div className="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white gap-2">

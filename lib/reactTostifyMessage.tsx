@@ -10,6 +10,12 @@ export const notifyNotAries = () => toast('You have no aries Powers ne mozes da 
   }
 );
 
+export const successMesasge = (text: string) => toast.success(text)
+
+
+
+
+
 
 
 

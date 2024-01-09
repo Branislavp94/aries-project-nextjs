@@ -1,6 +1,6 @@
 "use client";
 
-import { ToastContainer } from 'react-toastify';
+import { Toaster } from 'react-hot-toast';
 import 'react-toastify/dist/ReactToastify.css';
 
 
@@ -12,7 +12,10 @@ export default function ToastProvider({ children }: ToastProviderProps) {
   return (
     <>
       {children}
-      <ToastContainer />
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+      />
     </>
   );
 }

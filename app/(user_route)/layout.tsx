@@ -14,8 +14,8 @@ interface Session {
 export default async function PrivateRoute({ children }: Props) {
   const session: Session | null = await getServerSession(GET);
 
-  if (!session?.user) {
-    redirect('/')
+  if (session?.user) {
+    redirect('/dashboard')
   }
 
   return (

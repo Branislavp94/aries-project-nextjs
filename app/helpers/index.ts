@@ -11,3 +11,24 @@ export const isDateNotBetweenMarch21AndApril19 = (date: string | undefined): boo
 
   return parsedDate < march21 || parsedDate > april19;
 }
+
+
+export const validateForm = (data: { validatorKey: string }) => {
+  let message
+
+  switch (data.validatorKey) {
+    case 'isEmail':
+      message = 'Please enter correct Email Address'
+      break;
+    case 'not_unique':
+      message = 'The email address alredy exist'
+      break;
+    case 'is':
+      message = 'Password must be between 8 and 16 characters and  mix of upper/lowercase letters, number and special chars'
+      break;
+    default:
+      break;
+  }
+
+  return message
+}

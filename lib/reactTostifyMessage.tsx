@@ -1,6 +1,6 @@
 import { toast } from 'react-hot-toast';
 
-export const notifyNotAries = () => toast('You have no aries Powers ne mozes da sedis sa nama buuuu!',
+export const notifyNotAries = () => toast('You have no aries Powers',
   {
     style: {
       borderRadius: '10px',
@@ -11,6 +11,8 @@ export const notifyNotAries = () => toast('You have no aries Powers ne mozes da 
 );
 
 export const successMesasge = (text: string) => toast.success(text)
+export const errorMesasge = (text: string) => toast.error(text)
+
 
 
 

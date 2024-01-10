@@ -7,27 +7,30 @@ const authOptions = NextAuth({
       name: 'Credentials',
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
       },
       // @ts-ignore
-      async authorize(credentials: Record<"email" | "password", string> | undefined) {
+      async authorize(credentials: Record<"email", string> | undefined) {
         if (!credentials) {
           throw new Error("Credentials are undefined")
         }
-        console.log('Implement connection with db');
+        return {
+          name: credentials.email,
+          email: credentials.email
+        }
       }
     }),
   ],
   callbacks: {
     async jwt(params: any) {
       if (params) {
-        console.log('DO something');
+        return params.token;
       }
-      return params.token;
     },
     session({ session, token }) {
       if (session.user) {
-        console.log('DO something');
+        (session.user as { id: string }).id = token.id as string;
+        (session.user as { role: string }).role = token.role as string;
+        (session.user as { image: string }).image = token.image as string;
       }
       return session
     },
@@ -38,7 +41,7 @@ const authOptions = NextAuth({
     maxAge: 7 * 24 * 3600 * 1000,  //one week
   },
   pages: {
-    signIn: '/', //custom login page 
+    signIn: '/login', //custom login page 
   },
 });
 

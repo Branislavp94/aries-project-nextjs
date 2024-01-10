@@ -1,3 +1,4 @@
+import { getUserByEmail } from '@/app/apiCalls/user';
 import NextAuth from "next-auth";
 import CredentialProvider from "next-auth/providers/credentials";
 
@@ -13,17 +14,25 @@ const authOptions = NextAuth({
         if (!credentials) {
           throw new Error("Credentials are undefined")
         }
+
         return {
-          name: credentials.email,
-          email: credentials.email
+          email: credentials.email,
         }
       }
     }),
   ],
   callbacks: {
-    async jwt(params: any) {
-      if (params) {
-        return params.token;
+    // @ts-ignore
+    async jwt(params: { token: { email: string } }) {
+      const user = await getUserByEmail(params.token.email);
+
+      if (user) {
+        return {
+          email: user?.email,
+          name: user?.name,
+          role: user?.role,
+          id: user?.id,
+        }
       }
     },
     session({ session, token }) {
@@ -32,6 +41,7 @@ const authOptions = NextAuth({
         (session.user as { role: string }).role = token.role as string;
         (session.user as { image: string }).image = token.image as string;
       }
+
       return session
     },
   },

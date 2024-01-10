@@ -4,6 +4,7 @@ import React from 'react'
 
 const DashboardPage = () => {
   const { data: session } = useSession();
+  console.log(session);
 
   return (
     <div>Dashboard</div>

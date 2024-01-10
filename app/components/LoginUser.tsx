@@ -13,7 +13,7 @@ import { AuthErrorContext } from '../context/ErrorMessageFormContext'
 import ShowErrorMessage from '../uttils/ShowErrorMessage'
 import Link from 'next/link'
 import { signIn } from "next-auth/react"
-import { useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation';
 
 
 const LoginUser = () => {
@@ -33,8 +33,12 @@ const LoginUser = () => {
           redirect: false,
           email: data.email,
         }
-      )
-      successMesasge('Successfully Login');
+      ).then((response) => {
+        if (response?.ok) {
+          successMesasge('Successfully Login');
+          router.push('/dashboard')
+        }
+      })
     },
     onError(error) {
       setErrorMessage(error.response.data.message)

@@ -1,13 +1,15 @@
-'use client'
-import { useSession } from 'next-auth/react'
+import ChatMessagerSection from '@/app/components/dashboard/ChatMessagerSection';
+import HeaderAsideSection from '@/app/components/dashboard/HeaderAsideSection';
+import MainLayout from '@/app/components/dashboard/MainLayout';
 import React from 'react'
 
-const DashboardPage = () => {
-  const { data: session } = useSession();
-  console.log(session);
 
+const DashboardPage = () => {
   return (
-    <div>Dashboard</div>
+    <MainLayout>
+      <HeaderAsideSection />
+      <ChatMessagerSection />
+    </MainLayout>
   )
 }
 

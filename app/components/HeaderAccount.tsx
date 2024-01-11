@@ -6,9 +6,11 @@ import LogoImage from '@/public/images/413031207_6745980488864413_76743867615532
 import Link from 'next/link'
 import SettingsSvg from '@/public/settings-icon.svg';
 import LogOutSvg from '@/public/logout.svg'
+import LoadingIndicator from './LoadingIndicator'
 
 const HeaderAccount = () => {
-  const { data } = useSession();
+  const { data, status } = useSession();
+  console.log(status);
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleDropdown = () => {
@@ -27,7 +29,7 @@ const HeaderAccount = () => {
             objectFit={'contain'}
           />
         </div>
-        <div className="text-sm font-semibold mt-2">{data?.user?.email}</div>
+        <div className="text-sm font-semibold mt-2">{status === 'loading' ? <LoadingIndicator /> : data?.user?.email}</div>
       </div>
       {isOpen && (
         <div className="absolute w-56 px-5 py-3 dark:bg-gray-800 bg-white rounded-lg shadow border dark:border-transparent" style={{ marginTop: '-40px' }}>

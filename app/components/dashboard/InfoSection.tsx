@@ -1,14 +1,9 @@
-'use client'
 import React from 'react'
-import LogoImage from '@/public/images/413031207_6745980488864413_7674386761553248927_n.jpg'
 import Image from 'next/image'
 import AriesImage from '@/public/images/SvgHeart.Com-445.png'
-import { useSession } from "next-auth/react"
 import HeaderAccount from '../HeaderAccount'
 
 const InfoSection = () => {
-  const { data: session } = useSession();
-
   return (
     <>
       <div className="flex flex-row items-center justify-center h-12 w-full">

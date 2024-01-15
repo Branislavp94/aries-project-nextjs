@@ -14,7 +14,6 @@ const InfoSection = () => {
             width={40}
             height={40}
             alt={'Image'}
-            objectFit={'contain'}
           />
         </div>
       </div>

@@ -10,7 +10,6 @@ import LoadingIndicator from './LoadingIndicator'
 
 const HeaderAccount = () => {
   const { data, status } = useSession();
-  console.log(status);
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleDropdown = () => {
@@ -26,7 +25,6 @@ const HeaderAccount = () => {
             width={80}
             height={100}
             alt={'Image'}
-            objectFit={'contain'}
           />
         </div>
         <div className="text-sm font-semibold mt-2">{status === 'loading' ? <LoadingIndicator /> : data?.user?.email}</div>

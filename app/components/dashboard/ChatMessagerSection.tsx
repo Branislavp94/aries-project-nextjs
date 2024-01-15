@@ -1,6 +1,6 @@
 'use client'
 import { useSession } from 'next-auth/react';
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
@@ -10,25 +10,40 @@ const ChatMessagerSection = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [typingStatus, setTypingStatus] = useState('');
+  const [loading, setLoading] = useState(true); // Track loading state
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    const handleMessage = (data: { message: string; username: React.SetStateAction<string>; }) => {
-      setMessages((prevMessages) => [...prevMessages, data]);
-    };
+    // Listen for the chat history event and update the state
+    socket.on('chat_history', (history) => {
+      setMessages(history.messages);
+      setLoading(false); // Set loading to false after chat history is received
+    });
 
-    socket.on('recive_message', handleMessage);
+    // Request chat history when the user joins or refreshes the page
+    socket.emit('request_chat_history');
+  }, []); // Dependency array is empty, so it runs only once when the component mounts
 
+  useEffect(() => {
+    // Listen for the 'recive_message' event and update the state
+    socket.on('recive_message', (data) => {
+      if (data && data.messages && data.messages.length > 0) {
+        // Update state with only the last message in the array
+        setMessages((prevMessages) => [...prevMessages, data.messages[data.messages.length - 1]]);
+      }
+    });
+
+    // Listen for the 'typingResponse' event and update the state
     socket.on('typingResponse', (data) => {
-      setTypingStatus(data)
+      setTypingStatus(data);
     });
 
     return () => {
-      socket.off('recive_message', handleMessage);
-      socket.off('typingResponse', (data) => setTypingStatus(data));
+      socket.off('recive_message');
+      socket.off('typingResponse');
       setTypingStatus('');
-
     };
-  }, [messages]);
+  }, []);
 
   const sendMessage = (e: { preventDefault: () => void; }) => {
     e.preventDefault();
@@ -38,6 +53,8 @@ const ChatMessagerSection = () => {
         username: userData?.user?.email,
         socketId: socket.id,
         timeStamp: new Date().toLocaleDateString(),
+        groupId: 'main',
+        userId: userData?.user.id,
       });
       setMessage('');
     }
@@ -47,23 +64,34 @@ const ChatMessagerSection = () => {
     socket.emit('user_typing', `${userData?.user?.email} is typing...`);
   }
 
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+
+  if (loading) {
+    return <div>Loading...</div>; // Display a loading indicator while chat history is being fetched
+  }
+
   return (
     <div className="flex flex-col flex-auto h-full p-6">
       <div className="flex flex-col flex-auto flex-shrink-0 rounded-2xl bg-gray-100 h-full p-4">
         <div className="flex flex-col h-full overflow-x-auto mb-4">
           <div className="flex flex-col h-full">
             <div className="grid grid-cols-12 gap-y-2">
-              {messages.map((data: { socketId: string, message: string, username: string, timeStamp: string }) => (
+              {messages && messages?.map((data: { userId: string, message: string, username: string, timeStamp: string }) => (
                 <>
-                  <div key={data.socketId} className={data.username === userData?.user?.email ? "col-start-1 col-end-8 p-3 rounded-lg" : 'col-start-6 col-end-13 p-3 rounded-lg'}>
+                  <div key={data?.userId} className={data?.username === userData?.user?.email ? "col-start-1 col-end-8 p-3 rounded-lg" : 'col-start-6 col-end-13 p-3 rounded-lg'}>
                     <div className='flex flex-col'>
-                      <span className={data.username === userData?.user?.email ? 'flex p-1 ml-12 text-slate-500' : 'flex p-1 justify-end mr-12 text-slate-500'}>{data.username.split('@')[0]}</span>
-                      <div className={data.username === userData?.user?.email ? 'flex flex-row items-center' : 'flex items-center justify-start flex-row-reverse'}>
+                      <span className={data?.username === userData?.user?.email ? 'flex p-1 ml-12 text-slate-500' : 'flex p-1 justify-end mr-12 '}>{data?.username?.split('@')[0]}</span>
+                      <div className={data?.username === userData?.user?.email ? 'flex flex-row items-center' : 'flex items-center justify-start flex-row-reverse'}>
                         <div className="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
-                          {data.username === userData?.user?.email ? 'A' : 'B'}
+                          {data?.username === userData?.user?.email ? 'A' : 'B'}
                         </div>
-                        <div className={data.username === userData?.user?.email ? 'relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl' : 'relative mr-3 text-sm bg-indigo-100 py-2 px-4 shadow rounded-xl'}>
-                          {data.message}
+                        <div className={data?.username === userData?.user?.email ? 'relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl' : 'relative mr-3 text-sm bg-indigo-100 py-2 px-4 shadow rounded-xl'}>
+                          {data?.message}
                         </div>
                       </div>
                     </div>
@@ -76,6 +104,7 @@ const ChatMessagerSection = () => {
             <p>{typingStatus}</p>
           </div>
         </div>
+        <div ref={messagesEndRef}></div>
         <form onSubmit={sendMessage}>
           <div className="flex flex-row items-center h-16 rounded-xl bg-white w-full px-4">
             <div>

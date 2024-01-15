@@ -36,7 +36,7 @@ const LoginUser = () => {
       ).then((response) => {
         if (response?.ok) {
           successMesasge('Successfully Login');
-          router.push('/dashboard')
+          router.push('/dashboard?groupId=main')
         }
       })
     },

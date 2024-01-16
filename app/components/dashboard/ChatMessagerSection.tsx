@@ -3,16 +3,19 @@ import { useSession } from 'next-auth/react';
 import React, { useEffect, useRef, useState } from 'react'
 import { io } from 'socket.io-client';
 import SceletonLoading from '../SceletonLoading';
+import { useSearchParams } from 'next/navigation'
 
 const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
 
 const ChatMessagerSection = () => {
+  const searchParams = useSearchParams()
   const { data: userData } = useSession();
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [typingStatus, setTypingStatus] = useState('');
   const [loading, setLoading] = useState(true); // Track loading state
   const messagesEndRef = useRef(null);
+  const groupId = searchParams.get('groupId');
 
   useEffect(() => {
     // Listen for the chat history event and update the state
@@ -22,15 +25,19 @@ const ChatMessagerSection = () => {
       scrollToBottom();
     });
 
-    // Request chat history when the user joins or refreshes the page
-    socket.emit('request_chat_history');
-  }, []); // Dependency array is empty, so it runs only once when the component mounts
+
+    if (groupId) {
+      // Request chat history when the user joins or refreshes the page
+      socket.emit('request_chat_history', { groupId });
+    }
+  }, [groupId]); // Dependency array is empty, so it runs only once when the component mounts
 
   useEffect(() => {
     // Listen for the 'recive_message' event and update the state
     socket.on('recive_message', (data) => {
       if (data && data.messages && data.messages.length > 0) {
         // Update state with only the last message in the array
+        // @ts-ignore
         setMessages((prevMessages) => [...prevMessages, data.messages[data.messages.length - 1]]);
         scrollToBottom();
       }
@@ -56,7 +63,8 @@ const ChatMessagerSection = () => {
         username: userData?.user?.email,
         socketId: socket.id,
         timeStamp: new Date().toLocaleDateString(),
-        groupId: 'main',
+        groupId,
+        // @ts-ignore
         userId: userData?.user.id,
       });
       setMessage('');

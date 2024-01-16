@@ -28,8 +28,11 @@ const LoginUser = () => {
       return axios.post(`${process.env.BACKEND_URL}/api/user/login`, data)
     },
     onSuccess({ data }) {
-      socket.emit('newUser', { userName: data.email, socketID: socket.id });
       setErrorMessage(null);
+      socket.emit('set_user_active_status', {
+        email: data.email
+      });
+
       signIn(
         'credentials',
         {

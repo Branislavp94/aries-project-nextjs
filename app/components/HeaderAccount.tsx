@@ -7,6 +7,9 @@ import Link from 'next/link'
 import SettingsSvg from '@/public/settings-icon.svg';
 import LogOutSvg from '@/public/logout.svg'
 import LoadingIndicator from './LoadingIndicator'
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
 
 const HeaderAccount = () => {
   const { data, status } = useSession();
@@ -15,6 +18,14 @@ const HeaderAccount = () => {
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
   };
+
+
+  const handleUserLogOut = () => {
+    socket.emit('user_log_out', {
+      email: data?.user?.email,
+    })
+    signOut();
+  }
 
   return (
     <div onClick={toggleDropdown} className="border-b-4 border-transparent">
@@ -47,7 +58,7 @@ const HeaderAccount = () => {
             <hr className="dark:border-gray-700" />
             <li className="font-medium">
               <Link
-                onClick={() => signOut()}
+                onClick={handleUserLogOut}
                 className="flex items-center transform transition-colors duration-200 border-r-4 border-transparent hover:border-red-600"
                 href='#'
               >

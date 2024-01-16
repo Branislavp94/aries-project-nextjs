@@ -14,7 +14,9 @@ import ShowErrorMessage from '../uttils/ShowErrorMessage'
 import Link from 'next/link'
 import { signIn } from "next-auth/react"
 import { useRouter } from 'next/navigation';
+import { io } from 'socket.io-client';
 
+const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
 
 const LoginUser = () => {
   const { errorMessage, setErrorMessage } = useContext(AuthErrorContext);
@@ -26,6 +28,7 @@ const LoginUser = () => {
       return axios.post(`${process.env.BACKEND_URL}/api/user/login`, data)
     },
     onSuccess({ data }) {
+      socket.emit('newUser', { userName: data.email, socketID: socket.id });
       setErrorMessage(null);
       signIn(
         'credentials',

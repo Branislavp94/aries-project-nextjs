@@ -19,7 +19,6 @@ const HeaderAccount = () => {
     setIsOpen(!isOpen);
   };
 
-
   const handleUserLogOut = () => {
     socket.emit('user_log_out', {
       email: data?.user?.email,

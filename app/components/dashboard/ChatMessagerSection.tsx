@@ -36,7 +36,6 @@ const ChatMessagerSection = () => {
     // Listen for the 'recive_message' event and update the state
     socket.on('recive_message', (data) => {
       if (data && data.messages && data.messages.length > 0) {
-        // Update state with only the last message in the array
         // @ts-ignore
         setMessages((prevMessages) => [...prevMessages, data.messages[data.messages.length - 1]]);
         scrollToBottom();

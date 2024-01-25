@@ -46,7 +46,6 @@ const ActivChatSection = () => {
     };
 
     socket.on('active_users', handleActiveUsers);
-    // socket.on('user_conversation', handleUserConversation);
 
     socket.emit('users', {
       email: userData?.user?.email,
@@ -56,22 +55,21 @@ const ActivChatSection = () => {
     return () => {
       // Cleanup: Remove the event listener when the component unmounts
       socket.off('active_users', handleActiveUsers);
-      // socket.off('user_conversation', handleUserConversation);
     };
 
   }, [roomName, userData?.user?.email]);
 
   const handleStartNewConversation = (user: { email: string, hasActiveConversation: boolean }) => {
-    const username = user.email.split('@')[0].trim();
+    const username = user.email;
     // @ts-ignore
-    const userEmail = userData?.user?.email.split('@')[0].trim();
+    const userEmail = userData?.user?.email;
     const roomName = `${userEmail}-${username}`
 
     if (user?.hasActiveConversation) {
       router.replace(`/dashboard?groupId=${roomName}`)
     } else {
       setRoomName(roomName);
-      socket.emit('set_user_active_status', { roomName, email: user.email });
+      socket.emit('set_user_active_conversation', { roomName, email: user.email });
     }
   }
 
@@ -94,7 +92,7 @@ const ActivChatSection = () => {
               <LoadingIndicator />
             </div> :
             <>
-              {users && users.map((user: { email: string, id: number, isActive: boolean, hasActiveConversation: boolean }) => (
+              {users && users.map((user: { email: string, id: number, isActive: boolean, hasActiveConversation: boolean, recive_msg_count: number, last_msg_text: string }) => (
                 <>
                   <div className="flex items-center justify-evenly gap-4">
                     <div className="relative">
@@ -108,14 +106,31 @@ const ActivChatSection = () => {
                       </div>
                       <span className={`absolute top-3 left-8 transform -translate-y-1/2 w-3.5 h-3.5 ${user.isActive ? 'bg-green-400' : 'bg-red-400'} border-2 border-white dark:border-gray-800 rounded-full`}></span>
                     </div>
-                    <div>{user.email.split('@')[0]}</div>
-                    <div className="ml-auto cursor-pointer" onClick={() => handleStartNewConversation(user)}>
+                    <div className='flex flex-col  justify-center align-middle mt-2'>
+                      {user.email.split('@')[0]}
+                      {user.hasActiveConversation && (
+                        <div className='flex gap-2'>
+                          <span className='text-sm'>
+                            {user.last_msg_text.slice(0, 5)}...
+                          </span>
+                          <span className='text-sm'>
+                            {new Date().toDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative ml-auto cursor-pointer" onClick={() => handleStartNewConversation(user)}>
                       <Image
                         width={40}
                         height={40}
                         src={user.hasActiveConversation ? EnterChatMsgIcon : CreateChatMsgIcon}
                         alt='image'
                       />
+                      {user.hasActiveConversation && (
+                        <span className={`absolute top-2 left-8 transform -translate-y-1/2 w-8 h-5.5 flex justify-center items-center bg-indigo-500 border-2 border-white rounded-full text-lg`}>
+                          {user.recive_msg_count}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </>

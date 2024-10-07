@@ -2,9 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
-
 body {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+}
+
+.dot-flashing {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #3498db;
+  color: #3498db;
+  animation: dot-flashing 1s infinite linear alternate;
+  animation-delay: 0.5s;
+}
+
+@keyframes dot-flashing {
+  0% {
+    background-color: #3498db;
+  }
+  50%,
+  100% {
+    background-color: #e5e7eb;
+  }
 }

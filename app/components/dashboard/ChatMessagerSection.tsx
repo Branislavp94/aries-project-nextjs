@@ -1,6 +1,6 @@
 'use client'
 import { useSession } from 'next-auth/react';
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
@@ -9,12 +9,15 @@ const ChatMessagerSection = () => {
   const { data: userData } = useSession();
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
+  const [typing, setTyping] = useState(false); // New state for typing
+  const [isTyping, setIsTyping] = useState(false); // Tracks if someone else is typing
   const messagesEndRef = useRef(null);
 
   const isTheSameUser = (id: string | null | undefined) => id === userData?.user?.id;
 
   useEffect(() => {
     socket.emit('chat_history');
+
     socket.on('chat_history_response', (history) => {
       setMessages(history);
     });
@@ -34,23 +37,57 @@ const ChatMessagerSection = () => {
     };
   }, []);
 
+  // Listen for typing event
   useEffect(() => {
-    if (messagesEndRef.current) {
+    socket.on('user_typing', () => {
+      setIsTyping(true);
+    });
+
+    socket.on('user_stopped_typing', () => {
+      setIsTyping(false);
+    });
+
+    return () => {
+      socket.off('user_typing');
+      socket.off('user_stopped_typing ');
+    };
+  }, []);
+
+  useEffect(() => {
+    if (messagesEndRef.current || isTyping) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() !== '') {
+
       socket.emit('send_messages', {
         content: message,
         socketId: socket.id,
         userId: userData?.user?.id,
       });
-      setMessage(''); // Clear the input after sending
+      setMessage('');
+      setTyping(false);
     }
   };
+
+  const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMessage(e.target.value);
+    if (!typing) {
+      setTyping(true);
+    }
+    if (e.target.value === '') {
+      setTyping(false);
+    }
+  };
+
+  if (typing) {
+    socket.emit('typing')
+  } else {
+    socket.emit('stop_typing')
+  }
 
   return (
     <div className="flex flex-col flex-auto h-full p-6">
@@ -77,6 +114,16 @@ const ChatMessagerSection = () => {
                   </div>
                 ))}
               </div>
+              {/* Show typing indicator */}
+              {isTyping && (
+                <div className="flex p-4 items-center justify-center">
+                  <span className="text-gray-500 text-sm">Someone is typing</span>
+                  <div className="dot-flashing ml-2"></div>
+                  <div className="dot-flashing ml-2"></div>
+                  <div className="dot-flashing ml-2"></div>
+
+                </div>
+              )}
               <div ref={messagesEndRef}></div>
             </div>
           </div>
@@ -88,7 +135,7 @@ const ChatMessagerSection = () => {
                     type="text"
                     className="flex w-full border rounded-xl focus:outline-none focus:border-indigo-300 pl-4 h-10"
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={handleTyping}
                   />
                 </div>
               </div>

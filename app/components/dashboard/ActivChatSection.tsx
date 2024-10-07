@@ -60,8 +60,28 @@ const ActivChatSection = () => {
 
   }, []);
 
-  const handleStartNewConversation = (user: { email: string, hasActiveConversation: boolean }) => {
 
+  useEffect(() => {
+    const handleUserRoom = (room: React.SetStateAction<never[]>) => {
+      if (room) {
+
+      }
+      console.log('room', room)
+    };
+
+    socket.on('chat_room_users_response', handleUserRoom);
+
+    return () => {
+      // Cleanup: Remove the event listener when the component unmounts
+      socket.off('chat_room_users_response', handleUserRoom);
+    };
+
+  }, []);
+
+  const handleStartNewConversation = (user: { email: string }) => {
+    if (userData && user) {
+      socket.emit('chat_room_users', { userOne: userData.user.id, userTwo: user.id })
+    }
   }
 
   return (
@@ -116,11 +136,11 @@ const ActivChatSection = () => {
                         src={user.hasActiveConversation ? EnterChatMsgIcon : CreateChatMsgIcon}
                         alt='image'
                       />
-                      {user.hasActiveConversation && (
+                      {/* {user.hasActiveConversation && (
                         <span className={`absolute top-2 left-8 transform -translate-y-1/2 w-8 h-5.5 flex justify-center items-center bg-indigo-500 border-2 border-white rounded-full text-lg`}>
                           {user.recive_msg_count}
                         </span>
-                      )}
+                      )} */}
                     </div>
                   </div>
                 </>

@@ -20,9 +20,7 @@ const HeaderAccount = () => {
   };
 
   const handleUserLogOut = () => {
-    socket.emit('user_log_out', {
-      email: data?.user?.email,
-    })
+    socket.emit('set_user_status_to_deactive', { email: data?.user?.email })
     signOut();
   }
 

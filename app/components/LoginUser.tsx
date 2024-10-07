@@ -29,9 +29,7 @@ const LoginUser = () => {
     },
     onSuccess({ data }) {
       setErrorMessage(null);
-      socket.emit('set_user_active_status', {
-        email: data.email
-      });
+      socket.emit('set_user_status_to_active', data);
 
       signIn(
         'credentials',

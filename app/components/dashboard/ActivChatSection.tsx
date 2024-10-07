@@ -7,7 +7,6 @@ import LogoImage from '@/public/images/413031207_6745980488864413_76743867615532
 import CreateChatMsgIcon from '@/public/new_message_icon.png'
 import EnterChatMsgIcon from '@/public/chat-code.svg'
 import { useSession } from 'next-auth/react';
-import LoadingOverlay from '../LoadingOverlay';
 import { useRouter } from 'next/navigation';
 
 const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
@@ -16,30 +15,11 @@ const ActivChatSection = () => {
   const { data: userData } = useSession();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newChatLoading, setNewChatLoading] = useState(false);
-  const [roomName, setRoomName] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    if (roomName !== '') {
-      setNewChatLoading(true);
-      const handleChatReponse = (data: { roomName: string }) => {
-        setNewChatLoading(false);
-        router.replace(`/dashboard?groupId=${data.roomName}`)
-        router.refresh();
-      }
+    socket.emit('users', { email: userData?.user?.email });
 
-      socket.on('chat_room_response', handleChatReponse);
-      socket.emit('create_new_room', { roomName });
-
-      return () => {
-        // Cleanup: Remove the event listener when the component unmounts
-        socket.off('chat_room_response', handleChatReponse);
-      };
-    }
-  }, [roomName, router]);
-
-  useEffect(() => {
     const handleActiveUsers = (users: React.SetStateAction<never[]>) => {
       setLoading(false);
       setUsers(users);
@@ -47,35 +27,45 @@ const ActivChatSection = () => {
 
     socket.on('active_users', handleActiveUsers);
 
-    socket.emit('users', {
-      email: userData?.user?.email,
-      roomName
-    });
+  }, [userData?.user?.email]);
+
+
+  useEffect(() => {
+    const handleActiveUsers = (users: React.SetStateAction<never[]>) => {
+      setLoading(false);
+      setUsers(users);
+    };
+
+    socket.on('set_user_data_after_deactivate', handleActiveUsers);
 
     return () => {
       // Cleanup: Remove the event listener when the component unmounts
-      socket.off('active_users', handleActiveUsers);
+      socket.off('set_user_data_after_deactivate', handleActiveUsers);
     };
 
-  }, [roomName, userData?.user?.email]);
+  }, []);
+
+  useEffect(() => {
+    const handleActiveUsers = (users: React.SetStateAction<never[]>) => {
+      setLoading(false);
+      setUsers(users);
+    };
+
+    socket.on('new_added_users', handleActiveUsers);
+
+    return () => {
+      // Cleanup: Remove the event listener when the component unmounts
+      socket.off('new_added_users', handleActiveUsers);
+    };
+
+  }, []);
 
   const handleStartNewConversation = (user: { email: string, hasActiveConversation: boolean }) => {
-    const username = user.email;
-    // @ts-ignore
-    const userEmail = userData?.user?.email;
-    const roomName = `${userEmail}-${username}`
 
-    if (user?.hasActiveConversation) {
-      router.replace(`/dashboard?groupId=${roomName}`)
-    } else {
-      setRoomName(roomName);
-      socket.emit('set_user_active_conversation', { roomName, email: user.email });
-    }
   }
 
   return (
     <>
-      {newChatLoading && <LoadingOverlay />}
       <div className="flex flex-col mt-8">
         <div onClick={() => router.push('/dashboard?groupId=main')} className="flex flex-row items-center text-xs cursor-pointer">
           <span className="font-bold">Main Group</span>
@@ -84,7 +74,7 @@ const ActivChatSection = () => {
       <div className="flex flex-col mt-8">
         <div className="flex flex-row items-center justify-between text-xs">
           <span className="font-bold">All Users</span>
-          <span className="flex items-center justify-center bg-gray-300 h-4 w-4 rounded-full">{users.length}</span>
+          <span className="flex items-center justify-center bg-gray-300 h-4 w-4 rounded-full p-3">{users.length}</span>
         </div>
         <div className="max-w-2xl mx-auto mt-5">
           {loading ?

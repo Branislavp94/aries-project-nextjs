@@ -34,11 +34,6 @@ const ChatMessagerSection = () => {
     };
   }, []);
 
-  // Log messages only when they change
-  useEffect(() => {
-    console.log('messages', messages);
-  }, [messages]);
-
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });

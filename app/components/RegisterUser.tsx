@@ -14,6 +14,9 @@ import { AuthErrorContext } from '../context/ErrorMessageFormContext'
 import ShowErrorMessage from '../uttils/ShowErrorMessage'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { io } from 'socket.io-client'
+
+const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
 
 const RegisterUser = () => {
   const { errorMessage, setErrorMessage } = useContext(AuthErrorContext);
@@ -25,6 +28,7 @@ const RegisterUser = () => {
       return axios.post(`${process.env.BACKEND_URL}/api/user/register`, data)
     },
     onSuccess() {
+      socket.emit('creteNewUser');
       setErrorMessage(null);
       successMesasge('Successfully user created');
       router.push('/login');

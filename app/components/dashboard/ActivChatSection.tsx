@@ -1,4 +1,5 @@
-"use client"
+'use client'
+
 import React, { useEffect, useState } from 'react'
 import { io } from 'socket.io-client';
 import LoadingIndicator from '../LoadingIndicator';
@@ -11,145 +12,97 @@ import { useRouter } from 'next/navigation';
 
 const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
 
-const ActivChatSection = () => {
+const ActivChatSection = ({ users }) => {
   const { data: userData } = useSession();
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    socket.emit('users', { email: userData?.user?.email });
-
-    const handleActiveUsers = (users: React.SetStateAction<never[]>) => {
-      setLoading(false);
-      setUsers(users);
-    };
-
-    socket.on('active_users', handleActiveUsers);
-
-  }, [userData?.user?.email]);
-
-
-  useEffect(() => {
-    const handleActiveUsers = (users: React.SetStateAction<never[]>) => {
-      setLoading(false);
-      setUsers(users);
-    };
-
-    socket.on('set_user_data_after_deactivate', handleActiveUsers);
-
-    return () => {
-      // Cleanup: Remove the event listener when the component unmounts
-      socket.off('set_user_data_after_deactivate', handleActiveUsers);
-    };
-
-  }, []);
-
-  useEffect(() => {
-    const handleActiveUsers = (users: React.SetStateAction<never[]>) => {
-      setLoading(false);
-      setUsers(users);
-    };
-
-    socket.on('new_added_users', handleActiveUsers);
-
-    return () => {
-      // Cleanup: Remove the event listener when the component unmounts
-      socket.off('new_added_users', handleActiveUsers);
-    };
-
-  }, []);
-
-
-  useEffect(() => {
-    const handleUserRoom = (room: React.SetStateAction<never[]>) => {
-      if (room) {
-
-      }
-      console.log('room', room)
-    };
-
-    socket.on('chat_room_users_response', handleUserRoom);
-
-    return () => {
-      // Cleanup: Remove the event listener when the component unmounts
-      socket.off('chat_room_users_response', handleUserRoom);
-    };
-
-  }, []);
-
   const handleStartNewConversation = (user: { email: string }) => {
     if (userData && user) {
-      socket.emit('chat_room_users', { userOne: userData.user.id, userTwo: user.id })
+      socket.emit('chat_room_users', { userOne: userData.user.id, userTwo: user.id });
     }
-  }
+  };
 
   return (
     <>
       <div className="flex flex-col mt-8">
-        <div onClick={() => router.push('/dashboard?groupId=main')} className="flex flex-row items-center text-xs cursor-pointer">
-          <span className="font-bold">Main Group</span>
-        </div>
-      </div>
-      <div className="flex flex-col mt-8">
-        <div className="flex flex-row items-center justify-between text-xs">
-          <span className="font-bold">All Users</span>
-          <span className="flex items-center justify-center bg-gray-300 h-4 w-4 rounded-full p-3">{users.length}</span>
-        </div>
         <div className="max-w-2xl mx-auto mt-5">
-          {loading ?
-            <div className="m-auto">
-              <LoadingIndicator />
-            </div> :
-            <>
-              {users && users.map((user: { email: string, id: number, isActive: boolean, hasActiveConversation: boolean, recive_msg_count: number, last_msg_text: string }) => (
-                <>
-                  <div className="flex items-center justify-evenly gap-4">
-                    <div className="relative">
-                      <div className="w-10 h-10 rounded mt-3">
-                        <Image
-                          width={50}
-                          height={50}
-                          src={LogoImage}
-                          alt='image'
-                        />
-                      </div>
-                      <span className={`absolute top-3 left-8 transform -translate-y-1/2 w-3.5 h-3.5 ${user.isActive ? 'bg-green-400' : 'bg-red-400'} border-2 border-white dark:border-gray-800 rounded-full`}></span>
-                    </div>
-                    <div className='flex flex-col  justify-center align-middle mt-2'>
-                      {user.email.split('@')[0]}
-                      {user.hasActiveConversation && (
-                        <div className='flex gap-2'>
-                          <span className='text-sm'>
-                            {user.last_msg_text.slice(0, 5)}...
-                          </span>
-                          <span className='text-sm'>
-                            {new Date().toDateString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="relative ml-auto cursor-pointer" onClick={() => handleStartNewConversation(user)}>
-                      <Image
-                        width={40}
-                        height={40}
-                        src={user.hasActiveConversation ? EnterChatMsgIcon : CreateChatMsgIcon}
-                        alt='image'
-                      />
-                      {/* {user.hasActiveConversation && (
-                        <span className={`absolute top-2 left-8 transform -translate-y-1/2 w-8 h-5.5 flex justify-center items-center bg-indigo-500 border-2 border-white rounded-full text-lg`}>
-                          {user.recive_msg_count}
-                        </span>
-                      )} */}
-                    </div>
+          {users.length === 0 ? (
+            <p>No active users</p>
+          ) : (
+            users.map((user) => (
+              <div
+                key={user.id}
+                className={`flex items-center justify-between gap-4 p-4 mb-3 rounded-lg shadow-md ${user.hasActiveConversation
+                  ? 'bg-blue-100 border-l-4 border-blue-400' // Active conversation style
+                  : 'bg-gray-50 hover:bg-gray-100' // No conversation style
+                  } transition-all ease-in-out duration-300`}
+              >
+                {/* Avatar and Active Status */}
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full overflow-hidden">
+                    <Image
+                      src={LogoImage}
+                      width={50}
+                      height={50}
+                      alt="User Avatar"
+                    />
                   </div>
-                </>
-              ))}
-            </>}
+                  <span
+                    className={`absolute top-0 right-0 w-4 h-4 rounded-full border-2 border-white ${user.isActive ? 'bg-green-400' : 'bg-red-400'
+                      }`}
+                  ></span>
+                </div>
+
+                {/* User Information and Chat Preview */}
+                <div className="flex flex-col justify-center w-full">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-800">
+                      {user.email.split('@')[0]}
+                    </span>
+                    {user.hasActiveConversation && (
+                      <span className="text-xs text-gray-500">
+                        {new Date().toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  {/* Chat preview or status */}
+                  {user.hasActiveConversation ? (
+                    <div className="text-sm text-gray-600">
+                      {user.last_msg_text.slice(0, 30)}...{' '}
+                      <span className="font-semibold">({user.recive_msg_count})</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">No chat yet</span>
+                  )}
+                </div>
+
+                {/* Action button to start or enter chat */}
+                <div
+                  className="cursor-pointer"
+                  onClick={() => handleStartNewConversation(user)}
+                >
+                  <Image
+                    src={user.hasActiveConversation ? EnterChatMsgIcon : CreateChatMsgIcon}
+                    width={70}
+                    height={70}
+                    alt="Chat Icon"
+                    className={`transition-transform transform ${user.hasActiveConversation
+                      ? 'scale-105 hover:scale-110'
+                      : 'hover:scale-105'
+                      }`}
+                  />
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default ActivChatSection
+export default ActivChatSection;

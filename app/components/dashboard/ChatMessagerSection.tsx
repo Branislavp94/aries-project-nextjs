@@ -9,14 +9,18 @@ const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Up
 type Props = {
   groupName: string;
   users: Array<{}>;
+  groupId?: string;
+  isUserChatRoom?: boolean;
 }
 
-const ChatMessagerSection = ({ groupName, users, messages }: Props) => {
+const ChatMessagerSection = ({ groupName, users, messages, groupId, isUserChatRoom = false }: Props) => {
+  const [messagesData, setMessagesData] = useState(messages);
   const { data: userData } = useSession();
   const [message, setMessage] = useState('');
   const [typing, setTyping] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
+  const [fetchUserChatMessages, setfetchUserChatMessages] = useState(false);  // only for userChat messages
 
   const isTheSameUser = (id: string | null | undefined) => id === userData?.user?.id;
 
@@ -36,20 +40,57 @@ const ChatMessagerSection = ({ groupName, users, messages }: Props) => {
     };
   }, []);
 
+
+  // Listen for typing event
+  useEffect(() => {
+    if (fetchUserChatMessages) {
+      socket.on('user_typing', () => {
+        setIsTyping(true);
+      });
+
+      socket.on('user_stopped_typing', () => {
+        setIsTyping(false);
+      });
+
+      return () => {
+        socket.off('user_typing');
+        socket.off('user_stopped_typing');
+      };
+    }
+
+  }, [fetchUserChatMessages]);
+
+
   useEffect(() => {
     if (messagesEndRef.current || isTyping) {
+      // @ts-ignore
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, isTyping]);
+  }, [messagesData, isTyping]);
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() !== '') {
-      socket.emit('send_messages', {
-        content: message,
-        socketId: socket.id,
-        userId: userData?.user?.id,
-      });
+
+      if (isUserChatRoom) {
+        const response = socket.emit('user_chat_room_send_message', {
+          chatRoomId: groupId,
+          userId: userData?.user?.id,
+          content: message,
+        });
+
+        if (response) {
+          setfetchUserChatMessages(true)
+        }
+
+      } else {
+        socket.emit('send_messages', {
+          content: message,
+          socketId: socket.id,
+          userId: userData?.user?.id,
+        });
+      }
+
       setMessage('');
       setTyping(false);
     }
@@ -90,8 +131,8 @@ const ChatMessagerSection = ({ groupName, users, messages }: Props) => {
         <div className="flex flex-col h-full overflow-x-auto mb-4">
           <div className="flex flex-col h-full">
             <div className="grid grid-cols-12 gap-y-2">
-              {messages &&
-                messages.map((messageObj, index) => {
+              {messagesData &&
+                messagesData.map((messageObj, index) => {
                   const { UserId, content } = messageObj; // Access UserId and message from messageObj
 
                   return (

@@ -65,6 +65,26 @@ const ActivChatSection = ({ users }) => {
   return (
     <>
       <div className="flex flex-col mt-8">
+        <div className="
+        flex 
+        items-center 
+        cursor-pointer 
+        justify-center 
+        gap-4 p-4 mb-3 
+        rounded-lg 
+        shadow-md 
+        w-96 
+        bg-gray-50 
+        hover:bg-gray-100 
+        ease-in-out 
+        duration-300
+        text-center
+        font-bold
+        transition-transform transform hover:scale-105
+        "
+          onClick={() => router.push('/dashboard')}>
+          <span> Global Main Room</span>
+        </div>
         <div className="max-w-2xl mx-auto mt-5">
           {usersFetchData.length === 0 ? (
             <p>No active users</p>

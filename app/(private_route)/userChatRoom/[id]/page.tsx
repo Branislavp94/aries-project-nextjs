@@ -1,6 +1,7 @@
 'use client'
 
 import ChatMessagerSection from '@/app/components/dashboard/ChatMessagerSection'
+import LoadingOverlay from '@/app/components/LoadingOverlay';
 import { useParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import { io } from 'socket.io-client';
@@ -32,7 +33,17 @@ const page = () => {
   }, [groupId])
 
   return (
-    <ChatMessagerSection users={chatRoom.Users} groupName={chatRoom.name} messages={chatRoom.Messages} />
+    <>
+      {chatRoom.length <= 0 ? <LoadingOverlay /> : (
+        <ChatMessagerSection
+          users={chatRoom.Users}
+          groupName={chatRoom.name}
+          messages={chatRoom.Messages}
+          groupId={groupId}
+          isUserChatRoom={true}
+        />
+      )}
+    </>
   )
 }
 

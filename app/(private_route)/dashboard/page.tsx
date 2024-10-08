@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import ChatMessagerSection from '@/app/components/dashboard/ChatMessagerSection';
 import { useSession } from 'next-auth/react';
 import { io } from 'socket.io-client';
+import LoadingOverlay from '@/app/components/LoadingOverlay';
 
 const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
 
@@ -63,7 +64,14 @@ const DashboardPage = () => {
 
   return (
     <>
-      <ChatMessagerSection users={users} groupName={groupName} messages={messages} />
+      {messages.length <= 0 ? <LoadingOverlay /> : (
+        <ChatMessagerSection
+          users={users}
+          groupName={groupName}
+          messages={messages}
+          isUserChatRoom={false}
+        />
+      )}
     </>
   )
 }

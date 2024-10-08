@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { getServerSession } from 'next-auth';
 import { GET } from '@/app/api/auth/[...nextauth]/route';
 import { redirect } from 'next/navigation';
+import MainLayout from '../components/dashboard/MainLayout';
 
 interface Props {
   children: ReactNode
@@ -20,7 +21,9 @@ export default async function PrivateRoute({ children }: Props) {
 
   return (
     <>
-      {children}
+      <MainLayout>
+        {children}
+      </MainLayout>
     </>
   )
 

@@ -2,8 +2,6 @@
 
 import React, { useEffect, useState } from 'react'
 import ChatMessagerSection from '@/app/components/dashboard/ChatMessagerSection';
-import HeaderAsideSection from '@/app/components/dashboard/HeaderAsideSection';
-import MainLayout from '@/app/components/dashboard/MainLayout';
 import { useSession } from 'next-auth/react';
 import { io } from 'socket.io-client';
 
@@ -11,6 +9,7 @@ const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Up
 
 const DashboardPage = () => {
   const [users, setUsers] = useState([]);
+  const [messages, setMessages] = useState([]);
   const { data: userData } = useSession();
 
   const groupName = 'Global Main Room';
@@ -40,11 +39,32 @@ const DashboardPage = () => {
 
   }, []);
 
+  useEffect(() => {
+    socket.emit('chat_history');
+
+    socket.on('chat_history_response', (history) => {
+      setMessages(history);
+    });
+
+    return () => {
+      socket.off('chat_history_response');
+    };
+  }, []);
+
+  useEffect(() => {
+    socket.on('receive_new_message', (newMessage) => {
+      setMessages(newMessage);
+    });
+
+    return () => {
+      socket.off('receive_new_message');
+    };
+  }, []);
+
   return (
-    <MainLayout>
-      <HeaderAsideSection users={users} />
-      <ChatMessagerSection users={users} groupName={groupName} />
-    </MainLayout>
+    <>
+      <ChatMessagerSection users={users} groupName={groupName} messages={messages} />
+    </>
   )
 }
 

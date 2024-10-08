@@ -11,37 +11,14 @@ type Props = {
   users: Array<{}>;
 }
 
-const ChatMessagerSection = ({ groupName, users }: Props) => {
+const ChatMessagerSection = ({ groupName, users, messages }: Props) => {
   const { data: userData } = useSession();
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
   const [typing, setTyping] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
   const isTheSameUser = (id: string | null | undefined) => id === userData?.user?.id;
-
-  useEffect(() => {
-    socket.emit('chat_history');
-
-    socket.on('chat_history_response', (history) => {
-      setMessages(history);
-    });
-
-    return () => {
-      socket.off('chat_history_response');
-    };
-  }, []);
-
-  useEffect(() => {
-    socket.on('receive_new_message', (newMessage) => {
-      setMessages(newMessage);
-    });
-
-    return () => {
-      socket.off('receive_new_message');
-    };
-  }, []);
 
   // Listen for typing event
   useEffect(() => {
@@ -114,48 +91,52 @@ const ChatMessagerSection = ({ groupName, users }: Props) => {
           <div className="flex flex-col h-full">
             <div className="grid grid-cols-12 gap-y-2">
               {messages &&
-                messages.map((data: { UserId: string; message: string }, index) => (
-                  <div
-                    key={index}
-                    className={
-                      isTheSameUser(data.UserId)
-                        ? 'col-start-1 col-end-8 p-3 rounded-lg'
-                        : 'col-start-6 col-end-13 p-3 rounded-lg'
-                    }
-                  >
-                    <div className="flex flex-col">
-                      <span
-                        className={
-                          isTheSameUser(data.UserId)
-                            ? 'flex p-1 ml-12 text-slate-500'
-                            : 'flex p-1 justify-end mr-12 '
-                        }
-                      >
-                        {data.User?.email?.split('@')[0]}
-                      </span>
-                      <div
-                        className={
-                          isTheSameUser(data.UserId)
-                            ? 'flex flex-row items-center'
-                            : 'flex items-center justify-start flex-row-reverse'
-                        }
-                      >
-                        <div className="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
-                          {isTheSameUser(data.UserId) ? 'A' : 'B'}
-                        </div>
-                        <div
+                messages.map((messageObj, index) => {
+                  const { UserId, content } = messageObj; // Access UserId and message from messageObj
+
+                  return (
+                    <div
+                      key={index}
+                      className={
+                        isTheSameUser(UserId)
+                          ? 'col-start-1 col-end-8 p-3 rounded-lg'
+                          : 'col-start-6 col-end-13 p-3 rounded-lg'
+                      }
+                    >
+                      <div className="flex flex-col">
+                        <span
                           className={
-                            isTheSameUser(data.UserId)
-                              ? 'relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl'
-                              : 'relative mr-3 text-sm bg-indigo-100 py-2 px-4 shadow rounded-xl'
+                            isTheSameUser(UserId)
+                              ? 'flex p-1 ml-12 text-slate-500'
+                              : 'flex p-1 justify-end mr-12 '
                           }
                         >
-                          {data.content}
+                          {messageObj.User?.email?.split('@')[0]}
+                        </span>
+                        <div
+                          className={
+                            isTheSameUser(UserId)
+                              ? 'flex flex-row items-center'
+                              : 'flex items-center justify-start flex-row-reverse'
+                          }
+                        >
+                          <div className="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
+                            {isTheSameUser(UserId) ? 'A' : 'B'}
+                          </div>
+                          <div
+                            className={
+                              isTheSameUser(UserId)
+                                ? 'relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl'
+                                : 'relative mr-3 text-sm bg-indigo-100 py-2 px-4 shadow rounded-xl'
+                            }
+                          >
+                            {content}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
 
             {/* Show typing indicator */}

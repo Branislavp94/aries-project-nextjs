@@ -38,7 +38,7 @@ const HeaderAccount = () => {
         <div className="text-sm font-semibold mt-2">{status === 'loading' ? <LoadingIndicator /> : data?.user?.email}</div>
       </div>
       {isOpen && (
-        <div className="absolute w-56 px-5 py-3 dark:bg-gray-800 bg-white rounded-lg shadow border dark:border-transparent" style={{ marginTop: '-40px' }}>
+        <div className="absolute  mt-[-40px] ml-[18px]  z-50 w-56 px-5 py-3 dark:bg-gray-800 bg-white rounded-lg shadow border dark:border-transparent">
           <ul className="space-y-3 dark:text-white">
             <li className="font-medium">
               <Link

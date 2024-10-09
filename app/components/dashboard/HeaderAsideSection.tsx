@@ -5,7 +5,7 @@ import ActivChatSection from './ActivChatSection'
 const HeaderAsideSection = ({ users }) => {
   return (
     <>
-      <div className="flex flex-col py-8 p-3 w-96 bg-white flex-shrink-0">
+      <div className="flex flex-col  items-center ml-5 mr-auto  py-8 p-3 w-96 bg-white flex-shrink-0">
         <InfoSection />
         <ActivChatSection users={users} />
       </div>

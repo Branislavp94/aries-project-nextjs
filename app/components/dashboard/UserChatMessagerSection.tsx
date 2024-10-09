@@ -10,16 +10,15 @@ type Props = {
   groupName: string;
   users: Array<{}>;
   groupId?: string;
-  isUserChatRoom?: boolean;
-  messages: Array<{ UserId: string, content: string, User: { email: string } }>;
 }
 
-const ChatMessagerSection = ({ groupName, users, messages }: Props) => {
+const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
   const { data: userData } = useSession();
   const [message, setMessage] = useState('');
   const [typing, setTyping] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
+  const [messages, setMessages] = useState<any[]>([]); // Use useState to manage messages
 
   const isTheSameUser = (id: string | null | undefined) => id === userData?.user?.id;
 
@@ -39,6 +38,25 @@ const ChatMessagerSection = ({ groupName, users, messages }: Props) => {
     };
   }, []);
 
+  // Listen for new messages and update state
+  useEffect(() => {
+    if (groupId) {
+      socket.emit('user_chat_room_send_message', { chatRoomId: groupId });
+
+      socket.on('users_new_chat_history_reponse', (data) => {
+        if (data?.Messages) {
+          // Update the messages state
+          setMessages(data.Messages);
+        }
+      });
+
+      return () => {
+        socket.off('users_new_chat_history_reponse');
+      };
+    }
+
+  }, [groupId]); // Depend on groupId and isUserChatRoom
+
   useEffect(() => {
     if (messagesEndRef.current || isTyping) {
       // @ts-ignore
@@ -49,11 +67,10 @@ const ChatMessagerSection = ({ groupName, users, messages }: Props) => {
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() !== '') {
-
-      socket.emit('send_messages', {
+      socket.emit('user_chat_room_send_message', {
+        chatRoomId: groupId,
+        userId: userData?.user?.id,
         content: message,
-        socketId: socket.id,
-        userId: userData?.user?.id as string,
       });
 
       setMessage('');
@@ -186,4 +203,4 @@ const ChatMessagerSection = ({ groupName, users, messages }: Props) => {
   );
 };
 
-export default ChatMessagerSection;
+export default UserChatMessagerSection;

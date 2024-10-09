@@ -62,8 +62,6 @@ const DashboardPage = () => {
     };
   }, []);
 
-  console.log('messages', messages)
-
   return (
     <>
       {messages.length <= 0 ? <LoadingOverlay /> : (

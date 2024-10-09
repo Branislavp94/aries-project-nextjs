@@ -6,6 +6,7 @@ import { FaVideo, FaInfoCircle } from 'react-icons/fa'; // Import icons
 import ChatInputForm from '../forms/ChatInputForm';
 import Image from 'next/image';
 import LoadingOverlay from '../LoadingOverlay';
+import GroupInfoSection from './messages/GroupInfoSection';
 
 const socket = io('http://localhost:5000', { transports: ['websocket'] });
 
@@ -90,7 +91,7 @@ const ChatMessagerSection = ({
   };
 
 
-  const handleImageUpload = async (file: File) => {
+  const handleImageUpload = async (file: any) => {
     if (file) {
       setUploadImageLoading(true);
       const formData = new FormData();
@@ -141,16 +142,7 @@ const ChatMessagerSection = ({
     <div className="flex flex-col flex-auto h-full p-6">
       <div className="flex flex-col flex-auto flex-shrink-0 rounded-2xl bg-gray-100 h-full p-4">
         {/* Group Info Section */}
-        <div className="flex justify-between items-center bg-white p-4 mb-4 rounded-xl shadow-md">
-          <div className="flex flex-col space-y-1">
-            <span className="text-lg font-semibold text-gray-800">{groupName}</span>
-            <span className="text-sm text-gray-500">{users?.length} Members</span>
-          </div>
-          <div className="flex space-x-4">
-            <FaVideo className="text-indigo-500 cursor-pointer hover:text-indigo-700" size={24} />
-            <FaInfoCircle className="text-indigo-500 cursor-pointer hover:text-indigo-700" size={24} />
-          </div>
-        </div>
+        <GroupInfoSection groupName={groupName} users={users} />
 
         {/* Messages Section */}
         <div className="flex flex-col h-full overflow-x-auto mb-4">

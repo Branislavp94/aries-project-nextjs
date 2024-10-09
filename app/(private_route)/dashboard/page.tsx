@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import ChatMessagerSection from '@/app/components/dashboard/ChatMessagerSection';
 import { useSession } from 'next-auth/react';
 import { io } from 'socket.io-client';
@@ -12,6 +12,7 @@ const DashboardPage = () => {
   const [users, setUsers] = useState([]);
   const [messages, setMessages] = useState([]);
   const { data: userData } = useSession();
+  const [messagerLoading, setMessagerLoading] = useState(false);
 
   const groupName = 'Global Main Room';
 
@@ -41,10 +42,12 @@ const DashboardPage = () => {
   }, []);
 
   useEffect(() => {
+    setMessagerLoading(true);
     socket.emit('chat_history');
 
     socket.on('chat_history_response', (history) => {
       setMessages(history);
+      setMessagerLoading(false);
     });
 
     return () => {
@@ -53,8 +56,10 @@ const DashboardPage = () => {
   }, []);
 
   useEffect(() => {
+    setMessagerLoading(true);
     socket.on('receive_new_message', (newMessage) => {
       setMessages(newMessage);
+      setMessagerLoading(false);
     });
 
     return () => {
@@ -62,11 +67,16 @@ const DashboardPage = () => {
     };
   }, []);
 
+  // Use useMemo to recalculate filterUsers whenever users or userData changes
+  const filterUsers = useMemo(() => {
+    return users.filter((data: { email: string }) => data?.email !== userData?.user?.email);
+  }, [users, userData?.user?.email]);
+
   return (
     <>
-      {messages.length <= 0 ? <LoadingOverlay /> : (
+      {messagerLoading ? <LoadingOverlay /> : (
         <ChatMessagerSection
-          users={users}
+          users={filterUsers}
           groupName={groupName}
           messages={messages}
           isUserChatRoom={false}

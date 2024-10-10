@@ -7,7 +7,7 @@ import LoadingOverlay from '../LoadingOverlay';
 import Image from 'next/image';
 import GroupInfoSection from './messages/GroupInfoSection';
 
-const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
+const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] }); // Update with your server URL
 
 type Props = {
   groupName: string;

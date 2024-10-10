@@ -4,6 +4,7 @@ const nextConfig = {
       'lh3.googleusercontent.com',
       'avatars.githubusercontent.com',
       'localhost',
+      'https://4981-93-86-62-95.ngrok-free.app',
       'SOURCE_IMAGE_DOMAIN',
     ],
   },

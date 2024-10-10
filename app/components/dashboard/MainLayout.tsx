@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import LoadingOverlay from '../LoadingOverlay';
 import 'webrtc-adapter';
 
-const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
+const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] }); // Update with your server URL
 
 const MainLayout = ({ children }: { children: React.ReactNode }): React.ReactNode => {
   const [users, setUsers] = useState([]);

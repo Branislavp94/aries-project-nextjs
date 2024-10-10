@@ -16,7 +16,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { io } from 'socket.io-client'
 
-const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
+const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] }); // Update with your server URL
 
 const RegisterUser = () => {
   const { errorMessage, setErrorMessage } = useContext(AuthErrorContext);

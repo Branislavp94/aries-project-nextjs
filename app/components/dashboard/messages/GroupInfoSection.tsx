@@ -7,7 +7,7 @@ type Props = {
   users: Array<{ id: number; email: string }>;
 };
 
-const socket = io('http://localhost:5000', { transports: ['websocket'] });
+const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] }); // Update with your server URL
 
 const GroupInfoSection = ({ groupName, users }: Props) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -25,6 +25,8 @@ const GroupInfoSection = ({ groupName, users }: Props) => {
           },
         ],
       });
+
+      console.log('peer', peer)
 
       setPeerConnection(peer);
 
@@ -113,7 +115,7 @@ const GroupInfoSection = ({ groupName, users }: Props) => {
         <video ref={localVideoRef} autoPlay muted className={callStarted ? 'block' : 'hidden'} style={{ width: '300px', height: 'auto' }} />
 
         {/* Remote Video */}
-        <video ref={remoteVideoRef} autoPlay className={callStarted ? 'block' : 'hidden'} style={{ width: '300px', height: 'auto' }} />
+        <video ref={remoteVideoRef} autoPlay className={callStarted ? 'block' : 'block'} style={{ width: '300px', height: 'auto' }} />
       </div>
     </div>
   );

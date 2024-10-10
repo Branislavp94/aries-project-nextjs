@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
+const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] }); // Update with your server URL
 
 const Page = () => {
   const params = useParams();

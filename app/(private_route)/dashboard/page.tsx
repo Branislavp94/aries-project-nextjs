@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { io } from 'socket.io-client';
 import LoadingOverlay from '@/app/components/LoadingOverlay';
 
-const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
+const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] }); // Update with your server URL
 
 const DashboardPage = () => {
   const [users, setUsers] = useState([]);

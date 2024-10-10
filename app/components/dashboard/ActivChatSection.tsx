@@ -6,16 +6,13 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-const socket = io('http://localhost:5000', { transports: ['websocket'] }); // Update with your server URL
+const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] }); // Update with your server URL
 
 const ActivChatSection = ({ users }) => {
   const { data: userData } = useSession();
   const router = useRouter();
   const [fetchRoom, setFetchRoom] = useState(false);
   const [usersFetchData, setFetchUsersData] = useState(users);
-
-  console.log('users', users);
-  console.log('userData', userData);
 
   const handleStartNewConversation = (user) => {
     if (userData && user) {

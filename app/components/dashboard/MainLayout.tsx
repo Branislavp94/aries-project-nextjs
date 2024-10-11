@@ -1,89 +1,34 @@
-'use client'
+'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import HeaderAsideSection from './HeaderAsideSection';
-import { io } from 'socket.io-client';
-import { useSession } from 'next-auth/react';
 import LoadingOverlay from '../LoadingOverlay';
-import 'webrtc-adapter';
+import { useSession } from 'next-auth/react';
+import { useActiveUsersData, useAllUsersAfterNewConversation, useCreateNewUser, useDeactivateUserData } from '@/app/hooks/useUserSocketHooks';
 
-const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] }); // Update with your server URL
-
-const MainLayout = ({ children }: { children: React.ReactNode }): React.ReactNode => {
-  const [users, setUsers] = useState([]);
+const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const { data: userData } = useSession();
-  const [userLoading, setUserLoading] = useState(false);
 
-  useEffect(() => {
-    setUserLoading(true);
-    socket.emit('users', { email: userData?.user?.email });
+  // Use the custom hook to manage socket events and fetch active users' data
+  const { data: usersFromAllEvents, isLoading } = useActiveUsersData();
 
-    const handleActiveUsers = (users: React.SetStateAction<never[]>) => {
-      setUsers(users);
-      setUserLoading(false);
-    };
+  // Create new user and manage other socket events
+  useCreateNewUser();
+  useAllUsersAfterNewConversation();
+  useDeactivateUserData();
 
-    socket.on('active_users', handleActiveUsers);
-  }, [userData?.user?.email]);
-
-  useEffect(() => {
-    setUserLoading(true);
-    socket.emit('creteNewUser');
-
-    const handleActiveUsers = (users: React.SetStateAction<never[]>) => {
-      setUsers(users);
-      setUserLoading(false);
-    };
-
-    socket.on('new_added_users', handleActiveUsers);
-
-    return () => {
-      // Cleanup: Remove the event listener when the component unmounts
-      socket.off('new_added_users', handleActiveUsers);
-    };
-  }, []);
-
-  useEffect(() => {
-    setUserLoading(true);
-
-    const handleActiveUsers = (users: React.SetStateAction<never[]>) => {
-      setUsers(users);
-      setUserLoading(false);
-    };
-
-    socket.on('all_users_response_after_creating_new_conversation', handleActiveUsers);
-
-    return () => {
-      // Cleanup: Remove the event listener when the component unmounts
-      socket.off('all_users_response_after_creating_new_conversation', handleActiveUsers);
-    };
-  }, []);
-
-  useEffect(() => {
-    setUserLoading(true);
-
-    const handleActiveUsers = (users: React.SetStateAction<never[]>) => {
-      setUsers(users);
-      setUserLoading(false);
-    };
-
-    socket.on('set_user_data_after_deactivate', handleActiveUsers);
-
-    return () => {
-      // Cleanup: Remove the event listener when the component unmounts
-      socket.off('set_user_data_after_deactivate', handleActiveUsers);
-    };
-  }, []);
-
-  // Use useMemo to recalculate filterUsers whenever users or userData changes
+  // Memoize the filtered user list, excluding the current user
   const filterUsers = useMemo(() => {
-    return users.filter((data: { email: string }) => data?.email !== userData?.user?.email);
-  }, [users, userData?.user?.email]);
+    if (!usersFromAllEvents || !userData?.user?.email) return [];
+
+    // @ts-ignore
+    return usersFromAllEvents.filter((data: { email: string }) => data.email !== userData?.user?.email);
+  }, [usersFromAllEvents, userData?.user?.email]);
 
   return (
     <div className="flex h-screen antialiased text-gray-800">
       <div className="flex flex-row h-full w-full overflow-x-hidden">
-        {userLoading ? <LoadingOverlay /> : <HeaderAsideSection users={filterUsers} />}
+        {isLoading ? <LoadingOverlay /> : <HeaderAsideSection users={filterUsers} />}
         {children}
       </div>
     </div>

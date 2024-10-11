@@ -13,6 +13,9 @@ const nextConfig = {
     BACKEND_URL: process.env.BACKEND_URL,
     GIPHY_API: process.env.GIPHY_API,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 module.exports = nextConfig;

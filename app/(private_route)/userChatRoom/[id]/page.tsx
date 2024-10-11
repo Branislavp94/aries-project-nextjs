@@ -2,48 +2,26 @@
 
 import UserChatMessagerSection from '@/app/components/dashboard/UserChatMessagerSection';
 import LoadingOverlay from '@/app/components/LoadingOverlay';
-import { useParams } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
-import { io } from 'socket.io-client';
-
-const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] }); // Update with your server URL
+import { useChatRoom } from '@/app/hooks/useUserChatRoom';
+import { useParams } from 'next/navigation';
+import React from 'react';
 
 const Page = () => {
   const params = useParams();
   const groupId = params.id as string;
 
-  // Initialize chatRoom as a single object
-  const [chatRoom, setChatRoom] = useState<{ name: string, Users: Array<{}> } | null>(null);
+  const { data: chatRoom, isLoading, error } = useChatRoom(groupId);
 
-  useEffect(() => {
-    if (groupId) {
-      socket.emit('get_chat_room_details', { id: groupId });
+  if (isLoading) return <LoadingOverlay />;
+  if (error) return <div>Error loading chat room</div>;
 
-      socket.on('get_chat_room_details_response', (data) => {
-        if (data) {
-          setChatRoom(data); // Expecting data to be a single chat room object
-        }
-      });
-    }
-
-    return () => {
-      socket.off('get_chat_room_details');
-      socket.off('get_chat_room_details_response');
-    };
-  }, [groupId]);
 
   return (
-    <>
-      {!chatRoom ? (
-        <LoadingOverlay />
-      ) : (
-        <UserChatMessagerSection
-          users={chatRoom.Users}
-          groupName={chatRoom.name}
-          groupId={groupId}
-        />
-      )}
-    </>
+    <UserChatMessagerSection
+      users={chatRoom?.Users || []}
+      groupName={chatRoom?.name || 'Unknown'}
+      groupId={groupId}
+    />
   );
 };
 

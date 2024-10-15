@@ -153,7 +153,7 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
     <div className="flex flex-col flex-auto h-full p-6">
       <div className="flex flex-col flex-auto flex-shrink-0 rounded-2xl bg-gray-100 h-full p-4">
         {/* Group Info Section */}
-        <GroupInfoSection groupName={groupName} users={users} />
+        <GroupInfoSection groupName={groupName} users={users} groupId={groupId} />
 
         {/* Messages Section */}
         <div className="flex flex-col h-full overflow-x-auto mb-4">

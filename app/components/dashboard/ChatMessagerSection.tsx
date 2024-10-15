@@ -29,7 +29,7 @@ const ChatMessagerSection = ({ groupName, users, messages }: Props) => {
   return (
     <div className="flex flex-col flex-auto h-full p-6">
       <div className="flex flex-col flex-auto flex-shrink-0 rounded-2xl bg-gray-100 h-full p-4">
-        <GroupInfoSection groupName={groupName} users={users} />
+        {/* <GroupInfoSection groupName={groupName} users={users} /> */}
         <div className="flex flex-col h-full overflow-x-auto mb-4">
           <div className="flex flex-col h-full">
             {uploadImageLoading ? (

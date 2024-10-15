@@ -18,7 +18,23 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [incomingCall, setIncomingCall] = useState(false);
     const [callerId, setCallerId] = useState('');
-    const [callAccepted, setCallAccepted] = useState(false); // New state to track if call is accepted
+    const [callAccepted, setCallAccepted] = useState(false);
+
+    const configuration = {
+        iceServers: [
+            {
+                urls: [
+                    "stun:stun1.l.google.com:19302",
+                    "stun:stun2.l.google.com:19302",
+                    "stun:stun3.l.google.com:19302",
+                    "stun:stun4.l.google.com:19302",
+                    "stun:stunserver.org",
+                    "stun:stun.voipstunt.com"
+                ],
+            },
+        ],
+        iceCandidatePoolSize: 10,
+    };
 
     useEffect(() => {
         socket.emit('join-group', groupId);
@@ -29,19 +45,16 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
         });
 
         socket.on('video-offer', async ({ offer, sender }) => {
-            console.log('Received video offer from:', sender);
             await handleVideoOffer(offer);
         });
 
         socket.on('video-answer', async ({ answer }) => {
-            console.log('Received video answer');
             if (peerConnectionRef.current) {
                 await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
             }
         });
 
         socket.on('ice-candidate', ({ candidate }) => {
-            console.log('ice-candidate', candidate);
             if (peerConnectionRef.current) {
                 peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
             }
@@ -56,33 +69,31 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
     }, [groupId]);
 
     const startCall = async () => {
-        console.log('Starting call');
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        setLocalStream(stream);
-        socket.emit('call_user', { groupId, from: socket.id });
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            setLocalStream(stream);
+            socket.emit('call_user', { groupId, from: socket.id });
+            initiateWebRTC(stream);
+        } catch (error) {
+            console.error('Error starting call:', error);
+        }
     };
 
-    // Effect to handle localStream changes
     useEffect(() => {
         if (localStream && localVideoRef.current) {
-            console.log('Setting local video stream');
             localVideoRef.current.srcObject = localStream;
         }
     }, [localStream]);
 
-    const initiateWebRTC = async () => {
-        const peerConnection = new RTCPeerConnection();
-        const localStreamNew = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    const initiateWebRTC = async (stream: MediaStream) => {
+        const peerConnection = new RTCPeerConnection(configuration); // Ensure you're using the configuration defined
 
-        if (localStreamNew) {
-            localStreamNew.getTracks().forEach(track => peerConnection.addTrack(track, localStreamNew));
-        }
+        // Add tracks from the stream to the peer connection
+        stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
 
-        console.log('localVideoRef', localVideoRef);
-        console.log('localStreamNew', localStreamNew);
-
-        if (localStreamNew && localVideoRef.current) {
-            localVideoRef.current.srcObject = localStreamNew;
+        // Set the local video stream to the video element
+        if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
         }
 
         peerConnection.onicecandidate = (event) => {
@@ -97,32 +108,36 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
 
         peerConnectionRef.current = peerConnection;
 
-        peerConnection.createOffer().then((offer) => {
-            peerConnection.setLocalDescription(offer);
-            socket.emit('video-offer', { offer, groupId });
-        });
+        // Create and send offer
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        socket.emit('video-offer', { offer, groupId });
     };
 
     const handleVideoOffer = async (offer: RTCSessionDescriptionInit) => {
-        const peerConnection = new RTCPeerConnection();
+        const peerConnection = new RTCPeerConnection(configuration);
 
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        try {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
-        peerConnection.onicecandidate = (event) => {
-            if (event.candidate) {
-                socket.emit('ice-candidate', { candidate: event.candidate, groupId });
-            }
-        };
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.emit('ice-candidate', { candidate: event.candidate, groupId });
+                }
+            };
 
-        peerConnection.ontrack = (event) => {
-            setRemoteStream(event.streams[0]);
-        };
+            peerConnection.ontrack = (event) => {
+                setRemoteStream(event.streams[0]);
+            };
 
-        peerConnectionRef.current = peerConnection;
+            peerConnectionRef.current = peerConnection;
 
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        socket.emit('video-answer', { answer, groupId });
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            socket.emit('video-answer', { answer, groupId });
+        } catch (error) {
+            console.error('Error handling video offer:', error);
+        }
     };
 
     useEffect(() => {
@@ -131,12 +146,24 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
         }
     }, [remoteStream]);
 
-    // Accept call handler
     const acceptCall = async () => {
         setIncomingCall(false); // Hide incoming call prompt
         setCallAccepted(true); // Set call as accepted
-        initiateWebRTC(); // Start the WebRTC connection
+
+        // Get user media stream (video/audio) before starting the WebRTC connection
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        initiateWebRTC(stream); // Pass the obtained stream to the initiateWebRTC function
     };
+
+    // Clean up WebRTC on unmount
+    useEffect(() => {
+        return () => {
+            if (peerConnectionRef.current) {
+                peerConnectionRef.current.close();
+                peerConnectionRef.current = null;
+            }
+        };
+    }, []);
 
     return (
         <div className="flex flex-col space-y-4">
@@ -156,22 +183,9 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
             </div>
 
             <div className="flex space-x-4">
-                {/* Local Video */}
-                <video
-                    ref={localVideoRef}
-                    muted
-                    autoPlay
-                    style={{ width: '300px', height: 'auto', border: '1px solid black' }}
-                />
-
-                {/* Remote Video */}
-                <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    style={{ width: '300px', height: 'auto', border: '1px solid black' }}
-                />
+                <video ref={localVideoRef} muted autoPlay style={{ width: '300px', height: 'auto', border: '1px solid black' }} />
+                <video ref={remoteVideoRef} autoPlay style={{ width: '300px', height: 'auto', border: '1px solid black' }} />
             </div>
-
 
             {incomingCall && (
                 <div className="flex flex-col gap-3 justify-center">

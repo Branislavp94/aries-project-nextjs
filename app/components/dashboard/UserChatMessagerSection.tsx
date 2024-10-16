@@ -164,10 +164,10 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
         {/* Group Info Section */}
         <GroupInfoSection groupName={groupName} users={users} groupId={groupId} videoRefCallback={handleVideoCallBack} />
 
-        <VideoChatRomComponent passVideoStreamData={passVideoStreamData} />
 
         {/* Messages Section */}
         <div className="flex flex-col h-full overflow-x-auto mb-4">
+          <VideoChatRomComponent passVideoStreamData={passVideoStreamData} />
           <div className="flex flex-col h-full">
             {uploadImageLoading ? <LoadingOverlay /> : (
               <div className="grid grid-cols-12 gap-y-2">

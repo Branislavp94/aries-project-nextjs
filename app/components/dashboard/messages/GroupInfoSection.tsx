@@ -18,7 +18,6 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [incomingCall, setIncomingCall] = useState(false);
     const [callerId, setCallerId] = useState('');
-    const [callAccepted, setCallAccepted] = useState(false);
 
     const configuration = {
         iceServers: [
@@ -29,11 +28,10 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
                     "stun:stun3.l.google.com:19302",
                     "stun:stun4.l.google.com:19302",
                     "stun:stunserver.org",
-                    "stun:stun.voipstunt.com"
+                    "stun:stun.voipstunt.com",
                 ],
             },
         ],
-        iceCandidatePoolSize: 10,
     };
 
     useEffect(() => {
@@ -44,27 +42,8 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
             setCallerId(from);
         });
 
-        socket.on('video-offer', async ({ offer, sender }) => {
-            await handleVideoOffer(offer);
-        });
-
-        socket.on('video-answer', async ({ answer }) => {
-            if (peerConnectionRef.current) {
-                await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-            }
-        });
-
-        socket.on('ice-candidate', ({ candidate }) => {
-            if (peerConnectionRef.current) {
-                peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-            }
-        });
-
         return () => {
             socket.off('incoming_call');
-            socket.off('video-offer');
-            socket.off('video-answer');
-            socket.off('ice-candidate');
         };
     }, [groupId]);
 
@@ -73,7 +52,7 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             setLocalStream(stream);
             socket.emit('call_user', { groupId, from: socket.id });
-            initiateWebRTC(stream);
+            peerConnectionRef.current = setupPeerConnection(stream);
         } catch (error) {
             console.error('Error starting call:', error);
         }
@@ -85,59 +64,76 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
         }
     }, [localStream]);
 
-    const initiateWebRTC = async (stream: MediaStream) => {
-        const peerConnection = new RTCPeerConnection(configuration); // Ensure you're using the configuration defined
+    const setupPeerConnection = (stream: MediaStream) => {
+        const peerConnection = new RTCPeerConnection(configuration);
 
-        // Add tracks from the stream to the peer connection
-        stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
+        // Add local tracks to peer connection
+        stream.getTracks().forEach((track) => {
+            peerConnection.addTrack(track, stream);
+        });
 
-        // Set the local video stream to the video element
-        if (localVideoRef.current) {
-            localVideoRef.current.srcObject = stream;
-        }
-
+        // Listen for ICE candidates and send them to the signaling server
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
                 socket.emit('ice-candidate', { candidate: event.candidate, groupId });
             }
         };
 
-        peerConnection.ontrack = (event) => {
-            setRemoteStream(event.streams[0]);
+        // Handle incoming ICE candidates from the remote peer
+        socket.on('ice-candidate', async ({ candidate }) => {
+            if (candidate) {
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (error) {
+                    console.error('Error adding received ICE candidate:', error);
+                }
+            }
+        });
+
+        // Handle negotiation needed for new offer/answer exchange
+        peerConnection.onnegotiationneeded = async () => {
+            try {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                socket.emit('video-offer', { offer, groupId });
+            } catch (error) {
+                console.error('Error during negotiation (createOffer):', error);
+            }
         };
 
-        peerConnectionRef.current = peerConnection;
+        // Handle incoming video offer
+        socket.on('video-offer', async ({ offer }) => {
+            try {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
-        // Create and send offer
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        socket.emit('video-offer', { offer, groupId });
-    };
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                socket.emit('video-answer', { answer, groupId });
+            } catch (error) {
+                console.error('Error handling incoming video offer:', error);
+            }
+        });
 
-    const handleVideoOffer = async (offer: RTCSessionDescriptionInit) => {
-        const peerConnection = new RTCPeerConnection(configuration);
+        // Handle incoming video answer
+        socket.on('video-answer', async ({ answer }) => {
+            try {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                console.log('Set remote description with answer');
+            } catch (error) {
+                console.error('Error handling incoming video answer:', error);
+            }
+        });
 
-        try {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        // Handle incoming tracks from the remote peer
+        peerConnection.ontrack = (event) => {
+            const [remoteStream] = event.streams;
 
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate) {
-                    socket.emit('ice-candidate', { candidate: event.candidate, groupId });
-                }
-            };
+            if (remoteStream) {
+                setRemoteStream(remoteStream); // Update state with remote stream
+            }
+        };
 
-            peerConnection.ontrack = (event) => {
-                setRemoteStream(event.streams[0]);
-            };
-
-            peerConnectionRef.current = peerConnection;
-
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            socket.emit('video-answer', { answer, groupId });
-        } catch (error) {
-            console.error('Error handling video offer:', error);
-        }
+        return peerConnection;
     };
 
     useEffect(() => {
@@ -147,12 +143,11 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
     }, [remoteStream]);
 
     const acceptCall = async () => {
-        setIncomingCall(false); // Hide incoming call prompt
-        setCallAccepted(true); // Set call as accepted
+        setIncomingCall(false);
 
         // Get user media stream (video/audio) before starting the WebRTC connection
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        initiateWebRTC(stream); // Pass the obtained stream to the initiateWebRTC function
+        peerConnectionRef.current = setupPeerConnection(stream);
     };
 
     // Clean up WebRTC on unmount
@@ -178,13 +173,16 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
                         className="text-indigo-500 cursor-pointer hover:text-indigo-700 transition-transform transform hover:scale-105"
                         onClick={startCall}
                     />
-                    <FaInfoCircle size={25} className="text-indigo-500 cursor-pointer hover:text-indigo-700 transition-transform transform hover:scale-105" />
+                    <FaInfoCircle
+                        size={25}
+                        className="text-indigo-500 cursor-pointer hover:text-indigo-700 transition-transform transform hover:scale-105"
+                    />
                 </div>
             </div>
 
             <div className="flex space-x-4">
                 <video ref={localVideoRef} muted autoPlay style={{ width: '300px', height: 'auto', border: '1px solid black' }} />
-                <video ref={remoteVideoRef} autoPlay style={{ width: '300px', height: 'auto', border: '1px solid black' }} />
+                <video ref={remoteVideoRef} muted autoPlay style={{ width: '300px', height: 'auto', border: '1px solid black' }} />
             </div>
 
             {incomingCall && (

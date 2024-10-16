@@ -10,7 +10,7 @@ type Props = {
 
 const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] });
 
-const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
+const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback }: Props) => {
     const localVideoRef = useRef<HTMLVideoElement | null>(null);
     const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -57,12 +57,6 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
             console.error('Error starting call:', error);
         }
     };
-
-    useEffect(() => {
-        if (localStream && localVideoRef.current) {
-            localVideoRef.current.srcObject = localStream;
-        }
-    }, [localStream]);
 
     const setupPeerConnection = (stream: MediaStream) => {
         const peerConnection = new RTCPeerConnection(configuration);
@@ -136,17 +130,13 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
         return peerConnection;
     };
 
-    useEffect(() => {
-        if (remoteStream && remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = remoteStream;
-        }
-    }, [remoteStream]);
-
     const acceptCall = async () => {
         setIncomingCall(false);
 
         // Get user media stream (video/audio) before starting the WebRTC connection
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        setLocalStream(stream);
+
         peerConnectionRef.current = setupPeerConnection(stream);
     };
 
@@ -159,6 +149,14 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
             }
         };
     }, []);
+
+
+    useEffect(() => {
+        if (remoteStream && localStream) {
+            videoRefCallback({ remoteStream, localStream, localVideoRef, remoteVideoRef })
+        }
+
+    }, [remoteStream, localStream])
 
     return (
         <div className="flex flex-col space-y-4">
@@ -178,11 +176,6 @@ const GroupInfoSection = ({ groupName, users, groupId }: Props) => {
                         className="text-indigo-500 cursor-pointer hover:text-indigo-700 transition-transform transform hover:scale-105"
                     />
                 </div>
-            </div>
-
-            <div className="flex space-x-4">
-                <video ref={localVideoRef} muted autoPlay style={{ width: '300px', height: 'auto', border: '1px solid black' }} />
-                <video ref={remoteVideoRef} muted autoPlay style={{ width: '300px', height: 'auto', border: '1px solid black' }} />
             </div>
 
             {incomingCall && (

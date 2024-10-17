@@ -34,7 +34,7 @@ export const useChatSocket = (messages: Array<{ UserId: string, content: string,
 
   useEffect(() => {
     if (messagesEndRef.current || isTyping) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
     }
   }, [messages, isTyping]);
 

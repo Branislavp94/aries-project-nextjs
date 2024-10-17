@@ -6,11 +6,12 @@ type Props = {
     groupName: string;
     users: Array<{ id: number; email: string }>;
     groupId: string;
+    videoRefCallback: (ref: { remoteStream: MediaStream; localStream: MediaStream; localVideoRef: React.RefObject<HTMLVideoElement>; remoteVideoRef: React.RefObject<HTMLVideoElement>; }) => void;
 };
 
 const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] });
 
-const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback }: Props) => {
+const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, }: Props) => {
     const localVideoRef = useRef<HTMLVideoElement | null>(null);
     const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -112,7 +113,6 @@ const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback }: Props
         socket.on('video-answer', async ({ answer }) => {
             try {
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-                console.log('Set remote description with answer');
             } catch (error) {
                 console.error('Error handling incoming video answer:', error);
             }
@@ -153,10 +153,9 @@ const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback }: Props
 
     useEffect(() => {
         if (remoteStream && localStream) {
-            videoRefCallback({ remoteStream, localStream, localVideoRef, remoteVideoRef })
+            videoRefCallback({ remoteStream, localStream, localVideoRef, remoteVideoRef });
         }
-
-    }, [remoteStream, localStream])
+    }, [remoteStream, localStream]);
 
     return (
         <div className="flex flex-col space-y-4">

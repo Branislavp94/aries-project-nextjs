@@ -7,11 +7,12 @@ type Props = {
     users: Array<{ id: number; email: string }>;
     groupId: string;
     videoRefCallback: (ref: { remoteStream: MediaStream; localStream: MediaStream; localVideoRef: React.RefObject<HTMLVideoElement>; remoteVideoRef: React.RefObject<HTMLVideoElement>; }) => void;
+    handleLeaveChat: () => void; // Existing prop
 };
 
 const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] });
 
-const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, }: Props) => {
+const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, handleLeaveChat }: Props) => {
     const localVideoRef = useRef<HTMLVideoElement | null>(null);
     const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -43,8 +44,15 @@ const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, }: Prop
             setCallerId(from);
         });
 
+        // Listen for user left notification
+        socket.on('user-left', (userId) => {
+            console.log(`User with ID ${userId} has left the chat`);
+            // Handle UI updates if necessary, e.g., showing a notification
+        });
+
         return () => {
             socket.off('incoming_call');
+            socket.off('user-left');
         };
     }, [groupId]);
 
@@ -140,6 +148,11 @@ const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, }: Prop
         peerConnectionRef.current = setupPeerConnection(stream);
     };
 
+    const leaveChat = () => {
+        socket.emit('leave-group', { groupId, userId: socket.id }); // Emit leave event
+        handleLeaveChat(); // Call the provided leave chat handler
+    };
+
     // Clean up WebRTC on unmount
     useEffect(() => {
         return () => {
@@ -149,7 +162,6 @@ const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, }: Prop
             }
         };
     }, []);
-
 
     useEffect(() => {
         if (remoteStream && localStream) {
@@ -184,6 +196,8 @@ const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, }: Prop
                     <button onClick={() => setIncomingCall(false)}>Decline</button>
                 </div>
             )}
+
+            <div onClick={leaveChat} className="text-red-600 cursor-pointer">Leave Chat</div>
         </div>
     );
 };

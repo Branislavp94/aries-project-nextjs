@@ -135,6 +135,10 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
     }
   };
 
+  const handleLeaveChat = () => {
+    // setPassVideoStreamData(null);
+  }
+
   return (
     <div className="flex flex-col flex-auto h-full p-6">
       <div className="flex flex-col flex-auto flex-shrink-0 rounded-2xl bg-gray-100 h-full p-4">
@@ -144,6 +148,7 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
           users={users}
           groupId={groupId}
           videoRefCallback={handleVideoCallBack}
+          handleLeaveChat={handleLeaveChat}
         />
 
         {/* Messages Section */}
@@ -229,11 +234,14 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
           )}
           <div ref={messagesEndRef}></div>
 
-          <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-20">
-            <VideoChatRomComponent
-              passVideoStreamData={passVideoStreamData}
-            />
-          </div>
+          <>
+            {/* {passVideoStreamData && <div className="fixed inset-0 bg-black opacity-50 z-10" />} */}
+            <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-20">
+              <VideoChatRomComponent
+                passVideoStreamData={passVideoStreamData}
+              />
+            </div>
+          </>
         </div>
 
         {/* Input Section */}

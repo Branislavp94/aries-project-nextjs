@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
 
 const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] });

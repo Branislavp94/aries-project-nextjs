@@ -28,21 +28,38 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
   const isTheSameUser = (id: string | null | undefined) => id === userData?.user?.id;
 
   useEffect(() => {
-    socket.on('user_typing', () => setIsTyping(true));
-    socket.on('user_stopped_typing', () => setIsTyping(false));
+    if (groupId) {
+      // Join the chat room (group) for typing events
+      socket.emit('join_room', { chatRoomId: groupId });
 
-    return () => {
-      socket.off('user_typing');
-      socket.off('user_stopped_typing');
-    };
-  }, []);
+      socket.on('user_chat_typing', (data) => {
+        if (data.chatRoomId === groupId) {
+          setIsTyping(true);
+        }
+      });
+
+      socket.on('user_chat_stopped_typing', (data) => {
+        if (data.chatRoomId === groupId) {
+          setIsTyping(false);
+        }
+      });
+
+      return () => {
+        // Clean up events when leaving the group
+        socket.off('user_chat_typing');
+        socket.off('user_chat_stopped_typing');
+        socket.emit('leave_room', { chatRoomId: groupId });
+      };
+    }
+  }, [groupId]);
 
   useEffect(() => {
     if (groupId) {
       socket.emit('user_chat_room_send_message', { chatRoomId: groupId });
 
       socket.on('users_new_chat_history_response', (data) => {
-        if (data?.Messages) {
+        // Proveri da li su poruke iz trenutne grupe
+        if (data) {
           setMessages(data.Messages);
         }
       });
@@ -79,9 +96,9 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
   };
 
   if (typing) {
-    socket.emit('typing');
+    socket.emit('user_chat_typing', { chatRoomId: groupId });
   } else {
-    socket.emit('stop_typing');
+    socket.emit('user_chat_stopped_typing', { chatRoomId: groupId });
   }
 
   const handleSelectEmoticon = (emoticon: string) => {

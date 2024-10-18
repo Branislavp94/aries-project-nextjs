@@ -5,6 +5,7 @@ import CreateChatMsgIcon from '@/public/new_message_icon.png';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import LoadingOverlay from '../LoadingOverlay';
 
 const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] }); // Update with your server URL
 
@@ -13,6 +14,7 @@ const ActivChatSection = ({ users }) => {
   const router = useRouter();
   const [fetchRoom, setFetchRoom] = useState(false);
   const [usersFetchData, setFetchUsersData] = useState(users);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleStartNewConversation = (user) => {
     if (userData && user) {
@@ -38,11 +40,13 @@ const ActivChatSection = ({ users }) => {
 
   useEffect(() => {
     if (fetchRoom) {
+      setIsLoading(true);
       socket.emit('chat_room_users');
 
       socket.on('chat_room_users_response', (data) => {
         if (data) {
           setFetchRoom(false);
+          setIsLoading(false);
           router.push(`/userChatRoom/${data.id}`);
         }
       });
@@ -55,6 +59,7 @@ const ActivChatSection = ({ users }) => {
 
   return (
     <>
+      {isLoading && <LoadingOverlay />}
       <div className="flex flex-col mt-8">
         <div
           className="flex items-center cursor-pointer justify-center gap-4 p-4 mb-3 rounded-lg shadow-md w-96 bg-gray-50 hover:bg-gray-100 ease-in-out duration-300 text-center font-bold transition-transform transform hover:scale-105"

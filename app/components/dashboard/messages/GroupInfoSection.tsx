@@ -1,25 +1,29 @@
+import { successMesasge } from '@/lib/reactTostifyMessage';
+import { useSession } from 'next-auth/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaVideo, FaInfoCircle } from 'react-icons/fa';
 import { io } from 'socket.io-client';
+import callingAnimation from '../../../lottie Animation/calling_animation.json'
+import Lottie from "lottie-react";
 
 type Props = {
     groupName: string;
     users: Array<{ id: number; email: string }>;
     groupId: string;
-    videoRefCallback: (ref: { remoteStream: MediaStream; localStream: MediaStream; localVideoRef: React.RefObject<HTMLVideoElement>; remoteVideoRef: React.RefObject<HTMLVideoElement>; }) => void;
-    handleLeaveChat: () => void; // Existing prop
+    videoRefCallback: (ref: { remoteStream: MediaStream | null; localStream: MediaStream | null; localVideoRef: React.RefObject<HTMLVideoElement>; remoteVideoRef: React.RefObject<HTMLVideoElement>; }) => void;
 };
 
 const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] });
 
-const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, handleLeaveChat }: Props) => {
+const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback }: Props) => {
+    const { data: userData } = useSession();
     const localVideoRef = useRef<HTMLVideoElement | null>(null);
     const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [incomingCall, setIncomingCall] = useState(false);
-    const [callerId, setCallerId] = useState('');
+    const [callerName, setCallerName] = useState('');
 
     const configuration = {
         iceServers: [
@@ -37,22 +41,34 @@ const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, handleL
     };
 
     useEffect(() => {
-        socket.emit('join-group', groupId);
+        socket.emit('join_room', groupId);
 
-        socket.on('incoming_call', ({ from }) => {
+        socket.on('incoming_call', ({ user }) => {
             setIncomingCall(true);
-            setCallerId(from);
+            setCallerName(user?.email);
         });
 
-        // Listen for user left notification
-        socket.on('user-left', (userId) => {
-            console.log(`User with ID ${userId} has left the chat`);
-            // Handle UI updates if necessary, e.g., showing a notification
-        });
+        const handleUserLeft = (data: any) => {
+            cleanUpStreams();
+
+            videoRefCallback({ remoteStream: null, localStream: null, localVideoRef: null, remoteVideoRef: null });
+
+            setIncomingCall(false);
+
+            if (data) {
+                const userEmail = data.user.email;
+
+                if (userEmail !== userData?.user?.email) {
+                    successMesasge(`${userEmail} left the call`)
+                }
+            }
+        };
+
+        socket.on('user-left', handleUserLeft);
 
         return () => {
             socket.off('incoming_call');
-            socket.off('user-left');
+            socket.off('user-left', handleUserLeft); // Properly remove the specific handler
         };
     }, [groupId]);
 
@@ -60,7 +76,7 @@ const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, handleL
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             setLocalStream(stream);
-            socket.emit('call_user', { groupId, from: socket.id });
+            socket.emit('call_user', { groupId, from: socket.id, user: userData.user });
             peerConnectionRef.current = setupPeerConnection(stream);
         } catch (error) {
             console.error('Error starting call:', error);
@@ -140,34 +156,58 @@ const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, handleL
 
     const acceptCall = async () => {
         setIncomingCall(false);
-
-        // Get user media stream (video/audio) before starting the WebRTC connection
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setLocalStream(stream);
-
         peerConnectionRef.current = setupPeerConnection(stream);
     };
 
-    const leaveChat = () => {
-        socket.emit('leave-group', { groupId, userId: socket.id }); // Emit leave event
-        handleLeaveChat(); // Call the provided leave chat handler
-    };
+    const cleanUpStreams = () => {
+        // Stop local stream tracks (video and audio)
+        if (localStream) {
+            localStream.getTracks().forEach((track) => {
+                if (track.readyState === 'live') {
+                    track.stop(); // Explicitly stop the track
+                }
+            });
 
-    // Clean up WebRTC on unmount
-    useEffect(() => {
-        return () => {
-            if (peerConnectionRef.current) {
-                peerConnectionRef.current.close();
-                peerConnectionRef.current = null;
+            if (localVideoRef.current) {
+                localVideoRef.current.srcObject = null; // Stop the local video playback
             }
-        };
-    }, []);
+        }
+
+        if (remoteStream) {
+            remoteStream.getTracks().forEach((track) => {
+                if (track.readyState === 'live') {
+                    track.stop(); // Stop remote tracks
+                }
+            });
+
+            if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = null; // Stop the remote video playback
+            }
+        }
+
+        if (peerConnectionRef.current) {
+            peerConnectionRef.current.close();
+            peerConnectionRef.current = null;
+        }
+
+        // Reset state
+        setLocalStream(null);
+        setRemoteStream(null);
+    };
 
     useEffect(() => {
         if (remoteStream && localStream) {
             videoRefCallback({ remoteStream, localStream, localVideoRef, remoteVideoRef });
         }
     }, [remoteStream, localStream]);
+
+
+    const declineCall = () => {
+        //  TO DO: LATER
+    }
+
 
     return (
         <div className="flex flex-col space-y-4">
@@ -190,14 +230,27 @@ const GroupInfoSection = ({ groupName, users, groupId, videoRefCallback, handleL
             </div>
 
             {incomingCall && (
-                <div className="flex flex-col gap-3 justify-center">
-                    <span>Incoming call from: {callerId}</span>
-                    <button onClick={acceptCall}>Accept</button>
-                    <button onClick={() => setIncomingCall(false)}>Decline</button>
+                <div className="flex flex-col gap-3 justify-center items-center  p-4 rounded-lg shadow-lg fixed inset-0 bg-black opacity-80 z-10">
+                    <div className="w-48 h-48 z-50">
+                        {/* Lottie animation */}
+                        <Lottie loop={true} animationData={callingAnimation} />
+                    </div>
+                    <span className="text-lg z-50 font-bold text-white">Incoming call from: {callerName}</span>
+                    <div className="flex gap-4 mt-4 z-50">
+                        <button
+                            className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition duration-200 font-bold"
+                            onClick={acceptCall}
+                        >
+                            Accept
+                        </button>
+                        <button
+                            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition duration-200 font-bold"
+                            onClick={declineCall}>
+                            Decline
+                        </button>
+                    </div>
                 </div>
             )}
-
-            <div onClick={leaveChat} className="text-red-600 cursor-pointer">Leave Chat</div>
         </div>
     );
 };

@@ -1,5 +1,6 @@
 'use client';
 
+import { useSession } from 'next-auth/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaPhoneSlash, FaDesktop, FaStop } from 'react-icons/fa';
 import { io } from 'socket.io-client';
@@ -9,18 +10,24 @@ interface VideoChatRoomComponentProps {
     localStream: MediaStream | null; // Adjust the type as needed
     remoteStream: MediaStream | null; // Adjust the type as needed
   };
+  groupId: string;
 }
 
 const socket = io(process.env.BACKEND_URL as string, { transports: ['websocket'] }); // Update with your server URL
 
 
-const VideoChatRoomComponent: React.FC<VideoChatRoomComponentProps> = ({ passVideoStreamData }) => {
+const VideoChatRoomComponent: React.FC<VideoChatRoomComponentProps> = ({ passVideoStreamData, groupId }) => {
+  const { data: userData } = useSession();
+
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [isCameraEnabled, setIsCameraEnabled] = useState(true); // State to track camera status
+
+  console.log('passVideoStreamData', passVideoStreamData)
+
 
   useEffect(() => {
     if (passVideoStreamData) {
@@ -68,7 +75,7 @@ const VideoChatRoomComponent: React.FC<VideoChatRoomComponentProps> = ({ passVid
 
   // Handle leaving the chat
   const leaveChat = () => {
-
+    socket.emit('user-leave-call', { chatRoomId: groupId, user: userData?.user });
   };
 
 
@@ -100,7 +107,7 @@ const VideoChatRoomComponent: React.FC<VideoChatRoomComponentProps> = ({ passVid
 
   return (
     <>
-      {passVideoStreamData && (
+      {passVideoStreamData?.localStream && passVideoStreamData?.remoteStream && (
         <div className="flex-col flex items-center justify-center z-50 pointer-events-auto">
           <div className="flex flex-grow justify-center items-center">
             {isScreenSharing ? (

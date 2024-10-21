@@ -44,17 +44,6 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
         }
       });
 
-      return () => {
-        // Clean up events when leaving the group
-        socket.off('user_chat_typing');
-        socket.off('user_chat_stopped_typing');
-        socket.emit('leave_room', { chatRoomId: groupId });
-      };
-    }
-  }, [groupId]);
-
-  useEffect(() => {
-    if (groupId) {
       socket.emit('user_chat_room_send_message', { chatRoomId: groupId });
 
       socket.on('users_new_chat_history_response', (data) => {
@@ -65,10 +54,14 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
       });
 
       return () => {
+        // Clean up events when leaving the group
+        socket.off('user_chat_typing');
+        socket.off('user_chat_stopped_typing');
         socket.off('users_new_chat_history_response');
       };
     }
   }, [groupId]);
+
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -152,10 +145,6 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
     }
   };
 
-  const handleLeaveChat = () => {
-    // setPassVideoStreamData(null);
-  }
-
   return (
     <div className="flex flex-col flex-auto h-full p-6">
       <div className="flex flex-col flex-auto flex-shrink-0 rounded-2xl bg-gray-100 h-full p-4">
@@ -165,7 +154,6 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
           users={users}
           groupId={groupId}
           videoRefCallback={handleVideoCallBack}
-          handleLeaveChat={handleLeaveChat}
         />
 
         {/* Messages Section */}
@@ -252,10 +240,11 @@ const UserChatMessagerSection = ({ groupName, users, groupId }: Props) => {
           <div ref={messagesEndRef}></div>
 
           <>
-            {/* {passVideoStreamData && <div className="fixed inset-0 bg-black opacity-50 z-10" />} */}
+            {passVideoStreamData?.localStream && passVideoStreamData?.remoteStream && <div className="fixed inset-0 bg-black opacity-50 z-10" />}
             <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-20">
               <VideoChatRomComponent
                 passVideoStreamData={passVideoStreamData}
+                groupId={groupId}
               />
             </div>
           </>
